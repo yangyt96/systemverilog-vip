@@ -1,31 +1,26 @@
 `timescale 1ns/1ps
 
-
-
-
 `include "vunit_defines.svh"
 `include "axi_stream_master_vip.sv"
 `include "axi_stream_slave_vip.sv"
 
 module axi_stream_dut_tb;
 
-  import vunit_pkg::*;  // VUnit integration
+  import vunit_pkg::*;
 
-  localparam int DATA_WIDTH           = 64;
-  localparam int KEEP_WIDTH           = DATA_WIDTH / 8;
-  localparam int BASIC_STIMULUS_COUNT = 48;
-  localparam int PAUSE_STIMULUS_COUNT = 40;
-  localparam int BP_STIMULUS_COUNT    = 40;
+  localparam int DATA_WIDTH                = 64;
+  localparam int KEEP_WIDTH                = DATA_WIDTH / 8;
+  localparam int BASIC_STIMULUS_COUNT      = 48;
+  localparam int PAUSE_STIMULUS_COUNT      = 40;
+  localparam int BP_STIMULUS_COUNT         = 40;
+  localparam int CONTINUOUS_STIMULUS_COUNT = 64;
 
-  // clock and reset
   logic clk;
   logic rstn;
 
-  // instantiate AXI Stream interfaces for DUT input and output
   axi_stream_if #(DATA_WIDTH, KEEP_WIDTH) s_axis_if(clk, rstn);
   axi_stream_if #(DATA_WIDTH, KEEP_WIDTH) m_axis_if(clk, rstn);
 
-  // DUT instantiation (explicit ports if not using interface)
   axi_stream_dut #(
     .DATA_WIDTH(DATA_WIDTH),
     .KEEP_WIDTH(KEEP_WIDTH)
@@ -41,7 +36,6 @@ module axi_stream_dut_tb;
     .s_axis_tid   (s_axis_if.tid),
     .s_axis_tdest (s_axis_if.tdest),
     .s_axis_tuser (s_axis_if.tuser),
-
     .m_axis_tdata (m_axis_if.tdata),
     .m_axis_tvalid(m_axis_if.tvalid),
     .m_axis_tready(m_axis_if.tready),
@@ -53,7 +47,6 @@ module axi_stream_dut_tb;
     .m_axis_tuser (m_axis_if.tuser)
   );
 
-  // VIP handles
   AxiStreamMasterVIP #(DATA_WIDTH, KEEP_WIDTH) master;
   AxiStreamSlaveVIP  #(DATA_WIDTH, KEEP_WIDTH) slave;
 
@@ -135,13 +128,59 @@ module axi_stream_dut_tb;
     @(posedge clk);
   endtask
 
-  // clock generation
+  task automatic drive_stream(input int unsigned start_index,
+                              input int unsigned transfer_count);
+    int unsigned stimulus_idx;
+
+    for (stimulus_idx = start_index;
+         stimulus_idx < (start_index + transfer_count);
+         stimulus_idx++) begin
+      master.push_axi_stream(build_tdata(stimulus_idx),
+                             build_byte_mask(stimulus_idx),
+                             build_byte_mask(stimulus_idx + 1),
+                             ((stimulus_idx % 8) == 7),
+                             byte'(stimulus_idx),
+                             byte'(8'h80 | (stimulus_idx & 'h7f)),
+                             (32'h8765_0000 | stimulus_idx));
+    end
+  endtask
+
+  task automatic monitor_continuous_stream(input int unsigned expected_count,
+                                           output int unsigned observed_count,
+                                           output int unsigned observed_last_count);
+    int unsigned last_seen_tid;
+    int unsigned last_seen_tlast_count;
+    begin
+      observed_count = 0;
+      last_seen_tid = 0;
+      last_seen_tlast_count = 0;
+      m_axis_if.tready = 1'b1;
+
+      while (observed_count < expected_count) begin
+        @(posedge clk);
+        if (m_axis_if.tvalid && m_axis_if.tready) begin
+          observed_count++;
+          last_seen_tid = m_axis_if.tid;
+          if (m_axis_if.tlast) begin
+            last_seen_tlast_count++;
+          end
+        end
+      end
+
+      observed_last_count = last_seen_tlast_count;
+      assert(last_seen_tid == (expected_count - 1))
+        else $error("Continuous stream last TID mismatch exp=%0d got=%0d",
+                    expected_count - 1, last_seen_tid);
+      m_axis_if.tready = 1'b0;
+      @(posedge clk);
+    end
+  endtask
+
   initial begin
     clk = 0;
     forever #5 clk = ~clk;
   end
 
-  // reset
   initial begin
     rstn = 0;
     #20 rstn = 1;
@@ -159,38 +198,54 @@ module axi_stream_dut_tb;
     m_axis_if.tready = 1'b0;
   end
 
-
   `TEST_SUITE begin
-      int unsigned stimulus_idx;
+    int unsigned stimulus_idx;
+    int unsigned observed_count;
+    int unsigned observed_tlast_count;
 
-      master = new(s_axis_if.master);
-      slave  = new(m_axis_if.slave);
+    master = new(s_axis_if.master);
+    slave  = new(m_axis_if.slave);
 
-      @(posedge rstn);
-      @(posedge clk);
+    @(posedge rstn);
+    @(posedge clk);
 
-      master.configure_pause_generator(1'b0);
-      slave.configure_backpressure(1'b0);
-      for (stimulus_idx = 0; stimulus_idx < BASIC_STIMULUS_COUNT; stimulus_idx++) begin
-        run_transfer(stimulus_idx);
-      end
+    master.configure_pause_generator(1'b0);
+    slave.configure_backpressure(1'b0);
+    for (stimulus_idx = 0; stimulus_idx < BASIC_STIMULUS_COUNT; stimulus_idx++) begin
+      run_transfer(stimulus_idx);
+    end
 
-      master.configure_pause_generator(1'b1, 1, 4);
-      slave.configure_backpressure(1'b0);
-      for (stimulus_idx = BASIC_STIMULUS_COUNT;
-           stimulus_idx < (BASIC_STIMULUS_COUNT + PAUSE_STIMULUS_COUNT);
-           stimulus_idx++) begin
-        run_transfer(stimulus_idx);
-      end
+    master.configure_pause_generator(1'b1, 1, 4);
+    slave.configure_backpressure(1'b0);
+    for (stimulus_idx = BASIC_STIMULUS_COUNT;
+         stimulus_idx < (BASIC_STIMULUS_COUNT + PAUSE_STIMULUS_COUNT);
+         stimulus_idx++) begin
+      run_transfer(stimulus_idx);
+    end
 
-      master.configure_pause_generator(1'b0);
-      slave.configure_backpressure(1'b1, 2, 6);
-      for (stimulus_idx = (BASIC_STIMULUS_COUNT + PAUSE_STIMULUS_COUNT);
-           stimulus_idx < (BASIC_STIMULUS_COUNT + PAUSE_STIMULUS_COUNT + BP_STIMULUS_COUNT);
-           stimulus_idx++) begin
-        run_transfer(stimulus_idx);
-      end
+    master.configure_pause_generator(1'b0);
+    slave.configure_backpressure(1'b1, 2, 6);
+    for (stimulus_idx = (BASIC_STIMULUS_COUNT + PAUSE_STIMULUS_COUNT);
+         stimulus_idx < (BASIC_STIMULUS_COUNT + PAUSE_STIMULUS_COUNT + BP_STIMULUS_COUNT);
+         stimulus_idx++) begin
+      run_transfer(stimulus_idx);
+    end
+
+    master.configure_pause_generator(1'b0);
+    slave.configure_backpressure(1'b0);
+    fork
+      drive_stream(0, CONTINUOUS_STIMULUS_COUNT);
+      monitor_continuous_stream(CONTINUOUS_STIMULUS_COUNT,
+                                observed_count,
+                                observed_tlast_count);
+    join
+
+    assert(observed_count == CONTINUOUS_STIMULUS_COUNT)
+      else $error("Continuous stream count mismatch exp=%0d got=%0d",
+                  CONTINUOUS_STIMULUS_COUNT, observed_count);
+    assert(observed_tlast_count == (CONTINUOUS_STIMULUS_COUNT / 8))
+      else $error("Continuous stream TLAST count mismatch exp=%0d got=%0d",
+                  CONTINUOUS_STIMULUS_COUNT / 8, observed_tlast_count);
   end
-
 
 endmodule

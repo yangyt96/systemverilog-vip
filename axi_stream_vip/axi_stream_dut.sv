@@ -28,7 +28,11 @@ module axi_stream_dut #(
   output logic [31:0]           m_axis_tuser
 );
 
-  // Simple pass-through DUT
+  // One-stage AXI Stream pipeline.
+  // Data is accepted whenever the output register is empty or the current beat
+  // is consumed in the same cycle.
+  assign s_axis_tready = !m_axis_tvalid || m_axis_tready;
+
   always_ff @(posedge aclk or negedge aresetn) begin
     if (!aresetn) begin
       m_axis_tdata  <= '0;
@@ -39,22 +43,19 @@ module axi_stream_dut #(
       m_axis_tid    <= '0;
       m_axis_tdest  <= '0;
       m_axis_tuser  <= '0;
-      s_axis_tready <= 1'b0;
     end else begin
-      // handshake
-      if (s_axis_tvalid && m_axis_tready) begin
-        m_axis_tdata  <= s_axis_tdata;
-        m_axis_tvalid <= 1'b1;
-        m_axis_tkeep  <= s_axis_tkeep;
-        m_axis_tstrb  <= s_axis_tstrb;
-        m_axis_tlast  <= s_axis_tlast;
-        m_axis_tid    <= s_axis_tid;
-        m_axis_tdest  <= s_axis_tdest;
-        m_axis_tuser  <= s_axis_tuser;
-        s_axis_tready <= 1'b1;
-      end else begin
-        m_axis_tvalid <= 1'b0;
-        s_axis_tready <= 1'b0;
+      if (s_axis_tready) begin
+        m_axis_tvalid <= s_axis_tvalid;
+
+        if (s_axis_tvalid) begin
+          m_axis_tdata  <= s_axis_tdata;
+          m_axis_tkeep  <= s_axis_tkeep;
+          m_axis_tstrb  <= s_axis_tstrb;
+          m_axis_tlast  <= s_axis_tlast;
+          m_axis_tid    <= s_axis_tid;
+          m_axis_tdest  <= s_axis_tdest;
+          m_axis_tuser  <= s_axis_tuser;
+        end
       end
     end
   end

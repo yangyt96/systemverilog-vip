@@ -36,7 +36,7 @@ class AxiStreamSlaveVIP #(
     int unsigned stall_cycles;
 
     while (!vif.aresetn) @(posedge vif.aclk);
-    vif.tready <= 1'b0;
+    vif.tready = 1'b0;
 
     if (enable_backpressure) begin
       stall_cycles = $urandom_range(max_stall_cycles, min_stall_cycles);
@@ -44,10 +44,12 @@ class AxiStreamSlaveVIP #(
     end
 
     // ready to accept data
-    vif.tready <= 1'b1;
+    vif.tready = 1'b1;
 
-    // wait for valid data
-    while (!vif.tvalid) @(posedge vif.aclk);
+    // Capture on a real handshake edge so back-to-back traffic is sampled correctly.
+    do begin
+      @(posedge vif.aclk);
+    end while (!(vif.tvalid && vif.tready));
 
     // capture signals
     tdata = vif.tdata;
@@ -59,8 +61,7 @@ class AxiStreamSlaveVIP #(
     tuser = vif.tuser;
 
     // handshake complete
-    @(posedge vif.aclk);
-    vif.tready <= 1'b0;
+    vif.tready = 1'b0;
   endtask
 
 endclass
