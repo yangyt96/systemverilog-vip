@@ -59,6 +59,8 @@ class AxiStreamSlaveVIP #(
     tid   = vif.tid;
     tdest = vif.tdest;
     tuser = vif.tuser;
+    $display("[%0t] AXIS POP  tdata=%h tkeep=%h tstrb=%h tlast=%0b tid=%0h tdest=%0h tuser=%0h",
+             $time, tdata, tkeep, tstrb, tlast, tid, tdest, tuser);
 
     // handshake complete
     vif.tready = 1'b0;

@@ -55,6 +55,8 @@ class AxiStreamMasterVIP #(
     vif.tvalid = 1'b1;
     @(posedge vif.aclk);
     while (!vif.tready) @(posedge vif.aclk);
+    $display("[%0t] AXIS PUSH tdata=%h tkeep=%h tstrb=%h tlast=%0b tid=%0h tdest=%0h tuser=%0h",
+             $time, tdata, tkeep, tstrb, tlast, tid, tdest, tuser);
     vif.tvalid = 1'b0;
   endtask
 
