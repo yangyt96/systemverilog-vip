@@ -56,7 +56,7 @@ Supported sideband signals:
 - `tdest`
 - `tuser`
 
-### `AxiStreamMasterVIP`
+### `Axi4StreamMasterVIP`
 
 The master VIP is a class-based traffic source.
 
@@ -70,7 +70,7 @@ Features:
 Constructor:
 
 ```systemverilog
-AxiStreamMasterVIP #(DATA_WIDTH, KEEP_WIDTH) master;
+Axi4StreamMasterVIP #(DATA_WIDTH, KEEP_WIDTH) master;
 master = new(s_axis_if.master, "master_vip");
 ```
 
@@ -86,7 +86,7 @@ Pause generation:
 master.configure_pause_generator(enable, min_cycles, max_cycles);
 ```
 
-### `AxiStreamSlaveVIP`
+### `Axi4StreamSlaveVIP`
 
 The slave VIP is a class-based traffic sink.
 
@@ -100,7 +100,7 @@ Features:
 Constructor:
 
 ```systemverilog
-AxiStreamSlaveVIP #(DATA_WIDTH, KEEP_WIDTH) slave;
+Axi4StreamSlaveVIP #(DATA_WIDTH, KEEP_WIDTH) slave;
 slave = new(m_axis_if.slave, "slave_vip");
 ```
 

@@ -1,4 +1,4 @@
-class AxiStreamMasterVIP #(
+class Axi4StreamMasterVIP #(
   int DATA_WIDTH = 32,
   int KEEP_WIDTH = DATA_WIDTH / 8
 );

@@ -47,8 +47,8 @@ module axi4_stream_dut_tb;
     .m_axis_tuser (m_axis_if.tuser)
   );
 
-  AxiStreamMasterVIP #(DATA_WIDTH, KEEP_WIDTH) master;
-  AxiStreamSlaveVIP  #(DATA_WIDTH, KEEP_WIDTH) slave;
+  Axi4StreamMasterVIP #(DATA_WIDTH, KEEP_WIDTH) master;
+  Axi4StreamSlaveVIP  #(DATA_WIDTH, KEEP_WIDTH) slave;
 
   function automatic logic [DATA_WIDTH-1:0] build_tdata(int unsigned index);
     logic [DATA_WIDTH-1:0] value;
