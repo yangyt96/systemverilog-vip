@@ -11,16 +11,24 @@ module axi_stream_dut_tb;
 
   import vunit_pkg::*;  // VUnit integration
 
+  localparam int DATA_WIDTH           = 64;
+  localparam int KEEP_WIDTH           = DATA_WIDTH / 8;
+  localparam int BASIC_STIMULUS_COUNT = 64;
+  localparam int BP_STIMULUS_COUNT    = 64;
+
   // clock and reset
   logic clk;
   logic rstn;
 
   // instantiate AXI Stream interfaces for DUT input and output
-  axi_stream_if #(32) s_axis_if(clk, rstn);
-  axi_stream_if #(32) m_axis_if(clk, rstn);
+  axi_stream_if #(DATA_WIDTH, KEEP_WIDTH) s_axis_if(clk, rstn);
+  axi_stream_if #(DATA_WIDTH, KEEP_WIDTH) m_axis_if(clk, rstn);
 
   // DUT instantiation (explicit ports if not using interface)
-  axi_stream_dut #(.DATA_WIDTH(32)) dut (
+  axi_stream_dut #(
+    .DATA_WIDTH(DATA_WIDTH),
+    .KEEP_WIDTH(KEEP_WIDTH)
+  ) dut (
     .aclk(clk),
     .aresetn(rstn),
     .s_axis_tdata (s_axis_if.tdata),
@@ -45,8 +53,86 @@ module axi_stream_dut_tb;
   );
 
   // VIP handles
-  AxiStreamMasterVIP master;
-  AxiStreamSlaveVIP  slave;
+  AxiStreamMasterVIP #(DATA_WIDTH, KEEP_WIDTH) master;
+  AxiStreamSlaveVIP  #(DATA_WIDTH, KEEP_WIDTH) slave;
+
+  function automatic logic [DATA_WIDTH-1:0] build_tdata(int unsigned index);
+    logic [DATA_WIDTH-1:0] value;
+    int byte_idx;
+    begin
+      value = '0;
+      for (byte_idx = 0; byte_idx < KEEP_WIDTH; byte_idx++) begin
+        value[(byte_idx * 8) +: 8] = byte'((index * 13) + byte_idx);
+      end
+      return value;
+    end
+  endfunction
+
+  function automatic logic [KEEP_WIDTH-1:0] build_byte_mask(int unsigned index);
+    logic [KEEP_WIDTH-1:0] mask;
+    int active_bytes;
+    int byte_idx;
+    begin
+      mask = '0;
+      active_bytes = (index % KEEP_WIDTH) + 1;
+      for (byte_idx = 0; byte_idx < active_bytes; byte_idx++) begin
+        mask[byte_idx] = 1'b1;
+      end
+      return mask;
+    end
+  endfunction
+
+  task automatic run_transfer(input int unsigned index);
+    logic [DATA_WIDTH-1:0] exp_tdata;
+    logic [KEEP_WIDTH-1:0] exp_tkeep;
+    logic [KEEP_WIDTH-1:0] exp_tstrb;
+    bit                    exp_tlast;
+    byte                   exp_tid;
+    byte                   exp_tdest;
+    int unsigned           exp_tuser;
+    logic [DATA_WIDTH-1:0] rx_tdata;
+    logic [KEEP_WIDTH-1:0] rx_tkeep;
+    logic [KEEP_WIDTH-1:0] rx_tstrb;
+    bit                    rx_tlast;
+    byte                   rx_tid;
+    byte                   rx_tdest;
+    int unsigned           rx_tuser;
+
+    exp_tdata = build_tdata(index);
+    exp_tkeep = build_byte_mask(index);
+    exp_tstrb = build_byte_mask(index + 1);
+    exp_tlast = ((index % 8) == 7);
+    exp_tid   = byte'(index);
+    exp_tdest = byte'(8'h80 | (index & 'h7f));
+    exp_tuser = 32'h8765_0000 | index;
+
+    fork
+      master.push_axi_stream(exp_tdata,
+                             exp_tkeep,
+                             exp_tstrb,
+                             exp_tlast,
+                             exp_tid,
+                             exp_tdest,
+                             exp_tuser);
+      slave.pop_axi_stream(rx_tdata,
+                           rx_tkeep,
+                           rx_tstrb,
+                           rx_tlast,
+                           rx_tid,
+                           rx_tdest,
+                           rx_tuser);
+    join
+
+    assert(rx_tdata == exp_tdata) else $error("Data mismatch at stimulus %0d", index);
+    assert(rx_tkeep == exp_tkeep) else $error("TKEEP mismatch at stimulus %0d", index);
+    assert(rx_tstrb == exp_tstrb) else $error("TSTRB mismatch at stimulus %0d", index);
+    assert(rx_tlast == exp_tlast) else $error("TLAST mismatch at stimulus %0d", index);
+    assert(rx_tid == exp_tid) else $error("TID mismatch at stimulus %0d", index);
+    assert(rx_tdest == exp_tdest) else $error("TDEST mismatch at stimulus %0d", index);
+    assert(rx_tuser == exp_tuser) else $error("TUSER mismatch at stimulus %0d", index);
+
+    @(posedge clk);
+  endtask
 
   // clock generation
   initial begin
@@ -74,12 +160,7 @@ module axi_stream_dut_tb;
 
 
   `TEST_SUITE begin
-
-      logic [31:0] tdata;
-      logic [3:0]  tkeep, tstrb;
-      bit          tlast;
-      byte         tid, tdest;
-      int unsigned tuser;
+      int unsigned stimulus_idx;
 
       master = new(s_axis_if.master);
       slave  = new(m_axis_if.slave);
@@ -87,19 +168,17 @@ module axi_stream_dut_tb;
       @(posedge rstn);
       @(posedge clk);
 
-      fork
-        master.push_axi_stream(32'hCAFEBABE,
-                               4'hF, 4'hF,
-                               1'b1,
-                               8'h02,
-                               8'h01,
-                               32'h87654321);
-        slave.pop_axi_stream(tdata, tkeep, tstrb, tlast, tid, tdest, tuser);
-      join
+      slave.configure_backpressure(1'b0);
+      for (stimulus_idx = 0; stimulus_idx < BASIC_STIMULUS_COUNT; stimulus_idx++) begin
+        run_transfer(stimulus_idx);
+      end
 
-      // check result
-      assert(tdata == 32'hCAFEBABE) else $error("Data mismatch!");
-      assert(tlast == 1'b1) else $error("TLAST mismatch!");
+      slave.configure_backpressure(1'b1, 2, 6);
+      for (stimulus_idx = BASIC_STIMULUS_COUNT;
+           stimulus_idx < (BASIC_STIMULUS_COUNT + BP_STIMULUS_COUNT);
+           stimulus_idx++) begin
+        run_transfer(stimulus_idx);
+      end
   end
 
 
