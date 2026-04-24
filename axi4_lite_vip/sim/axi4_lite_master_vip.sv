@@ -42,7 +42,7 @@ class Axi4LiteMasterVIP #(
 
   task write(input  logic [ADDR_WIDTH-1:0] addr,
              input  logic [DATA_WIDTH-1:0] data,
-             input  logic [STRB_WIDTH-1:0] strb,
+             input  logic [STRB_WIDTH-1:0] strb = '1,
              output logic [1:0]            resp,
              input  logic [2:0]            prot = 3'b000);
     bit aw_done;
