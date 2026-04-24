@@ -1,4 +1,4 @@
-interface axi_stream_if #(parameter data_width = 32,
+interface axi4_stream_if #(parameter data_width = 32,
                           parameter keep_width = data_width/8)
                          (input logic aclk,
                           input logic aresetn);

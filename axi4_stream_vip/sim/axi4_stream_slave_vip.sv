@@ -4,15 +4,15 @@ class AxiStreamSlaveVIP #(
 );
 
   // handle to the interface
-  virtual axi_stream_if #(DATA_WIDTH, KEEP_WIDTH).slave vif;
+  virtual axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH).slave vif;
   string vip_name;
   bit enable_backpressure;
   int unsigned min_stall_cycles;
   int unsigned max_stall_cycles;
 
   // constructor
-  function new(virtual axi_stream_if #(DATA_WIDTH, KEEP_WIDTH).slave vif,
-               string vip_name = "axi_stream_slave_vip");
+  function new(virtual axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH).slave vif,
+               string vip_name = "axi4_stream_slave_vip");
     this.vif = vif;
     this.vip_name = vip_name;
     enable_backpressure = 1'b0;
@@ -28,8 +28,8 @@ class AxiStreamSlaveVIP #(
     max_stall_cycles    = (max_cycles < min_cycles) ? min_cycles : max_cycles;
   endfunction
 
-  // API: pop_axi_stream
-  task pop_axi_stream(output logic [DATA_WIDTH-1:0] tdata,
+  // API: pop_axi4_stream
+  task pop_axi4_stream(output logic [DATA_WIDTH-1:0] tdata,
                       output logic [KEEP_WIDTH-1:0] tkeep,
                       output logic [KEEP_WIDTH-1:0] tstrb,
                       output bit                    tlast,

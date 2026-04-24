@@ -1,4 +1,4 @@
-module axi_stream_dut #(
+module axi4_stream_dut #(
   parameter DATA_WIDTH = 32,
   parameter KEEP_WIDTH = DATA_WIDTH/8
 )(

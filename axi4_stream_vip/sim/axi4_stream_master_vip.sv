@@ -4,15 +4,15 @@ class AxiStreamMasterVIP #(
 );
 
   // handle to the interface
-  virtual axi_stream_if #(DATA_WIDTH, KEEP_WIDTH).master vif;
+  virtual axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH).master vif;
   string vip_name;
   bit enable_pause_generator;
   int unsigned min_pause_cycles;
   int unsigned max_pause_cycles;
 
   // constructor
-  function new(virtual axi_stream_if #(DATA_WIDTH, KEEP_WIDTH).master vif,
-               string vip_name = "axi_stream_master_vip");
+  function new(virtual axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH).master vif,
+               string vip_name = "axi4_stream_master_vip");
     this.vif = vif;
     this.vip_name = vip_name;
     enable_pause_generator = 1'b0;
@@ -28,8 +28,8 @@ class AxiStreamMasterVIP #(
     max_pause_cycles       = (max_cycles < min_cycles) ? min_cycles : max_cycles;
   endfunction
 
-  // API: push_axi_stream
-  task push_axi_stream(logic [DATA_WIDTH-1:0] tdata,
+  // API: push_axi4_stream
+  task push_axi4_stream(logic [DATA_WIDTH-1:0] tdata,
                        logic [KEEP_WIDTH-1:0] tkeep,
                        logic [KEEP_WIDTH-1:0] tstrb,
                        bit                    tlast,

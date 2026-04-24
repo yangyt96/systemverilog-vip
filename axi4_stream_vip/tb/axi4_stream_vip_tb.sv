@@ -1,10 +1,10 @@
 `timescale 1ns/1ps
 
 `include "vunit_defines.svh"
-`include "axi_stream_master_vip.sv"
-`include "axi_stream_slave_vip.sv"
+`include "axi4_stream_master_vip.sv"
+`include "axi4_stream_slave_vip.sv"
 
-module axi_stream_dut_tb;
+module axi4_stream_dut_tb;
 
   import vunit_pkg::*;
 
@@ -18,10 +18,10 @@ module axi_stream_dut_tb;
   logic clk;
   logic rstn;
 
-  axi_stream_if #(DATA_WIDTH, KEEP_WIDTH) s_axis_if(clk, rstn);
-  axi_stream_if #(DATA_WIDTH, KEEP_WIDTH) m_axis_if(clk, rstn);
+  axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH) s_axis_if(clk, rstn);
+  axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH) m_axis_if(clk, rstn);
 
-  axi_stream_dut #(
+  axi4_stream_dut #(
     .DATA_WIDTH(DATA_WIDTH),
     .KEEP_WIDTH(KEEP_WIDTH)
   ) dut (
@@ -101,14 +101,14 @@ module axi_stream_dut_tb;
     exp_tuser = 32'h8765_0000 | index;
 
     fork
-      master.push_axi_stream(exp_tdata,
+      master.push_axi4_stream(exp_tdata,
                              exp_tkeep,
                              exp_tstrb,
                              exp_tlast,
                              exp_tid,
                              exp_tdest,
                              exp_tuser);
-      slave.pop_axi_stream(rx_tdata,
+      slave.pop_axi4_stream(rx_tdata,
                            rx_tkeep,
                            rx_tstrb,
                            rx_tlast,
@@ -135,7 +135,7 @@ module axi_stream_dut_tb;
     for (stimulus_idx = start_index;
          stimulus_idx < (start_index + transfer_count);
          stimulus_idx++) begin
-      master.push_axi_stream(build_tdata(stimulus_idx),
+      master.push_axi4_stream(build_tdata(stimulus_idx),
                              build_byte_mask(stimulus_idx),
                              build_byte_mask(stimulus_idx + 1),
                              ((stimulus_idx % 8) == 7),
