@@ -5,13 +5,16 @@ class AxiStreamMasterVIP #(
 
   // handle to the interface
   virtual axi_stream_if #(DATA_WIDTH, KEEP_WIDTH).master vif;
+  string vip_name;
   bit enable_pause_generator;
   int unsigned min_pause_cycles;
   int unsigned max_pause_cycles;
 
   // constructor
-  function new(virtual axi_stream_if #(DATA_WIDTH, KEEP_WIDTH).master vif);
+  function new(virtual axi_stream_if #(DATA_WIDTH, KEEP_WIDTH).master vif,
+               string vip_name = "axi_stream_master_vip");
     this.vif = vif;
+    this.vip_name = vip_name;
     enable_pause_generator = 1'b0;
     min_pause_cycles       = 0;
     max_pause_cycles       = 0;
@@ -55,8 +58,8 @@ class AxiStreamMasterVIP #(
     vif.tvalid = 1'b1;
     @(posedge vif.aclk);
     while (!vif.tready) @(posedge vif.aclk);
-    $display("[%0t] AXIS PUSH tdata=%h tkeep=%h tstrb=%h tlast=%0b tid=%0h tdest=%0h tuser=%0h",
-             $time, tdata, tkeep, tstrb, tlast, tid, tdest, tuser);
+    $display("[%0t] %s TX tdata=%h tkeep=%h tstrb=%h tlast=%0b tid=%0h tdest=%0h tuser=%0h",
+             $time, vip_name, tdata, tkeep, tstrb, tlast, tid, tdest, tuser);
     vif.tvalid = 1'b0;
   endtask
 

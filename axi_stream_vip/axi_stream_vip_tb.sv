@@ -203,8 +203,8 @@ module axi_stream_dut_tb;
     int unsigned observed_count;
     int unsigned observed_tlast_count;
 
-    master = new(s_axis_if.master);
-    slave  = new(m_axis_if.slave);
+    master = new(s_axis_if.master, "master_vip");
+    slave  = new(m_axis_if.slave, "slave_vip");
 
     @(posedge rstn);
     @(posedge clk);

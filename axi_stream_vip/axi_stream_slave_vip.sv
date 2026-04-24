@@ -5,13 +5,16 @@ class AxiStreamSlaveVIP #(
 
   // handle to the interface
   virtual axi_stream_if #(DATA_WIDTH, KEEP_WIDTH).slave vif;
+  string vip_name;
   bit enable_backpressure;
   int unsigned min_stall_cycles;
   int unsigned max_stall_cycles;
 
   // constructor
-  function new(virtual axi_stream_if #(DATA_WIDTH, KEEP_WIDTH).slave vif);
+  function new(virtual axi_stream_if #(DATA_WIDTH, KEEP_WIDTH).slave vif,
+               string vip_name = "axi_stream_slave_vip");
     this.vif = vif;
+    this.vip_name = vip_name;
     enable_backpressure = 1'b0;
     min_stall_cycles    = 0;
     max_stall_cycles    = 0;
@@ -59,8 +62,8 @@ class AxiStreamSlaveVIP #(
     tid   = vif.tid;
     tdest = vif.tdest;
     tuser = vif.tuser;
-    $display("[%0t] AXIS POP  tdata=%h tkeep=%h tstrb=%h tlast=%0b tid=%0h tdest=%0h tuser=%0h",
-             $time, tdata, tkeep, tstrb, tlast, tid, tdest, tuser);
+    $display("[%0t] %s RX tdata=%h tkeep=%h tstrb=%h tlast=%0b tid=%0h tdest=%0h tuser=%0h",
+             $time, vip_name, tdata, tkeep, tstrb, tlast, tid, tdest, tuser);
 
     // handshake complete
     vif.tready = 1'b0;
