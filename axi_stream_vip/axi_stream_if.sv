@@ -17,10 +17,10 @@ interface axi_stream_if #(parameter data_width = 32,
   logic [31:0]           tuser;   // user-defined sideband
 
   // modports for direction control
-  modport master (input  tready,
+  modport master (input  aclk, aresetn, tready,
                   output tvalid, tdata, tkeep, tstrb, tlast, tid, tdest, tuser);
 
-  modport slave  (input  tvalid, tdata, tkeep, tstrb, tlast, tid, tdest, tuser,
+  modport slave  (input  aclk, aresetn, tvalid, tdata, tkeep, tstrb, tlast, tid, tdest, tuser,
                   output tready);
 
 endinterface

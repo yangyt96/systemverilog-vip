@@ -1,21 +1,21 @@
 class AxiStreamSlaveVIP;
 
   // handle to the interface
-  virtual axi_stream_if.slave vif;
+  virtual axi_stream_if #(32).slave vif;
 
   // constructor
-  function new(virtual axi_stream_if.slave vif);
+  function new(virtual axi_stream_if #(32).slave vif);
     this.vif = vif;
   endfunction
 
   // API: pop_axi_stream
-  task pop_axi_stream(output logic [vif.data_width-1:0] tdata,
-                      output logic [vif.keep_width-1:0] tkeep,
-                      output logic [vif.keep_width-1:0] tstrb,
-                      output bit                       tlast,
-                      output byte                      tid,
-                      output byte                      tdest,
-                      output int unsigned              tuser);
+  task pop_axi_stream(output logic [31:0] tdata,
+                      output logic [3:0]  tkeep,
+                      output logic [3:0]  tstrb,
+                      output bit          tlast,
+                      output byte         tid,
+                      output byte         tdest,
+                      output int unsigned tuser);
     // ready to accept data
     vif.tready <= 1'b1;
 

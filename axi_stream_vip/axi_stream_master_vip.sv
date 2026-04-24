@@ -1,21 +1,21 @@
 class AxiStreamMasterVIP;
 
   // handle to the interface
-  virtual axi_stream_if.master vif;
+  virtual axi_stream_if #(32).master vif;
 
   // constructor
-  function new(virtual axi_stream_if.master vif);
+  function new(virtual axi_stream_if #(32).master vif);
     this.vif = vif;
   endfunction
 
   // API: push_axi_stream
-  task push_axi_stream(logic [vif.data_width-1:0] tdata,
-                       logic [vif.keep_width-1:0] tkeep,
-                       logic [vif.keep_width-1:0] tstrb,
-                       bit                        tlast,
-                       byte                       tid,
-                       byte                       tdest,
-                       int unsigned               tuser);
+  task push_axi_stream(logic [31:0]  tdata,
+                       logic [3:0]   tkeep,
+                       logic [3:0]   tstrb,
+                       bit           tlast,
+                       byte          tid,
+                       byte          tdest,
+                       int unsigned  tuser);
     // drive signals
     vif.tdata  <= tdata;
     vif.tkeep  <= tkeep;
