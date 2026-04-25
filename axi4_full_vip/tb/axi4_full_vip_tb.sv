@@ -3,7 +3,7 @@
 `include "vunit_defines.svh"
 `include "../sim/axi4_full_if.sv"
 `include "../sim/axi4_full_master_vip.sv"
-`include "../sim/axi4_full_slave_vip.sv"
+`include "../sim/axi4_full_mem_vip.sv"
 
 module axi4_full_vip_tb;
 
@@ -11,6 +11,7 @@ module axi4_full_vip_tb;
   localparam int DATA_WIDTH   = 32;
   localparam int ID_WIDTH     = 4;
   localparam int STRB_WIDTH   = DATA_WIDTH / 8;
+  localparam int MEM_BYTES    = 16384;
 
   logic clk;
   logic rstn;
@@ -23,13 +24,14 @@ module axi4_full_vip_tb;
     .STRB_WIDTH(STRB_WIDTH)
   ) axi_if (clk, rstn);
 
-  // Instantiate DUT
-  axi4_full_dut #(
+  // Memory VIP is the slave under test for the master VIP.
+  axi4_full_mem_vip #(
     .ADDR_WIDTH(ADDR_WIDTH),
     .DATA_WIDTH(DATA_WIDTH),
     .ID_WIDTH(ID_WIDTH),
-    .STRB_WIDTH(STRB_WIDTH)
-  ) dut (
+    .STRB_WIDTH(STRB_WIDTH),
+    .MEM_BYTES(MEM_BYTES)
+  ) mem_vip (
     .aclk             (clk),
     .aresetn          (rstn),
     .s_axi_awid       (axi_if.awid),
@@ -99,11 +101,48 @@ module axi4_full_vip_tb;
     .STRB_WIDTH(STRB_WIDTH)
   ) master_vip;
 
+  function automatic logic [DATA_WIDTH-1:0] build_data(input int unsigned index);
+    return DATA_WIDTH'(32'hA500_1000 + (index * 32'h0001_0101));
+  endfunction
+
+  function automatic logic [DATA_WIDTH-1:0] apply_wstrb(
+    input logic [DATA_WIDTH-1:0] old_data,
+    input logic [DATA_WIDTH-1:0] new_data,
+    input logic [STRB_WIDTH-1:0] strb
+  );
+    logic [DATA_WIDTH-1:0] result;
+    begin
+      result = old_data;
+      for (int byte_idx = 0; byte_idx < STRB_WIDTH; byte_idx++) begin
+        if (strb[byte_idx]) begin
+          result[(8 * byte_idx) +: 8] = new_data[(8 * byte_idx) +: 8];
+        end
+      end
+      return result;
+    end
+  endfunction
+
+  task automatic check_single_read(
+    input logic [ADDR_WIDTH-1:0] addr,
+    input logic [DATA_WIDTH-1:0] expected_data,
+    input logic [ID_WIDTH-1:0]   id = '0
+  );
+    logic [DATA_WIDTH-1:0] read_data;
+    logic [1:0]            resp;
+    begin
+      master_vip.read(.addr(addr), .data(read_data), .resp(resp), .id(id));
+      assert(resp == 2'b00) else $error("Read response mismatch addr=%h resp=%0h", addr, resp);
+      assert(read_data == expected_data)
+        else $error("Read data mismatch addr=%h exp=%h got=%h", addr, expected_data, read_data);
+    end
+  endtask
+
   // Test stimulus
   `TEST_SUITE
   begin
     // Initialize master VIP
     master_vip = new(axi_if.master, "MASTER_VIP_0");
+    master_vip.clear_outputs();
     master_vip.configure_pause_generator(.enable(1'b0));
 
     // Wait for reset
@@ -113,11 +152,9 @@ module axi4_full_vip_tb;
     `TEST_CASE("Simple Write-Read")
     begin
       logic [1:0] resp;
-      logic [DATA_WIDTH-1:0] read_data;
       $display("\n=== AXI4 Full VIP Testbench Started ===");
       $display("\n--- Test 1: Simple Write-Read ---");
 
-      // Write to address 0x1000 with data 0xDEADBEEF
       master_vip.write(
         .addr(32'h1000),
         .data(32'hDEADBEEF),
@@ -126,20 +163,11 @@ module axi4_full_vip_tb;
         .len(8'd0),
         .resp(resp)
       );
-      repeat (2) @(posedge clk);
-
-      // Read from address 0x1000
-      master_vip.read(
-        .addr(32'h1000),
-        .data(read_data),
-        .resp(resp),
-        .id(4'd0),
-        .len(8'd0)
-      );
-      repeat (2) @(posedge clk);
+      assert(resp == 2'b00) else $error("Write response mismatch resp=%0h", resp);
+      check_single_read(32'h1000, 32'hDEADBEEF, 4'd0);
     end
 
-    `TEST_CASE("Multiple Writes")
+    `TEST_CASE("Multiple Write-Reads")
     begin
       logic [1:0] resp;
       $display("\n--- Test 2: Multiple Writes ---");
@@ -151,22 +179,8 @@ module axi4_full_vip_tb;
           .id(i[3:0]),
           .resp(resp)
         );
-        repeat (2) @(posedge clk);
-      end
-    end
-
-    `TEST_CASE("Multiple Reads")
-    begin
-      logic [1:0] resp;
-      logic [DATA_WIDTH-1:0] read_data;
-      $display("\n--- Test 3: Multiple Reads ---");
-      for (int i = 0; i < 4; i++) begin
-        master_vip.read(
-          .addr(32'h2000 + (i * 4)),
-          .data(read_data),
-          .resp(resp),
-          .id(i[3:0])
-        );
+        assert(resp == 2'b00) else $error("Write response mismatch index=%0d resp=%0h", i, resp);
+        check_single_read(32'h2000 + (i * 4), 32'h11223300 + i, i[3:0]);
         repeat (2) @(posedge clk);
       end
     end
@@ -174,7 +188,16 @@ module axi4_full_vip_tb;
     `TEST_CASE("Partial Write Byte Mask")
     begin
       logic [1:0] resp;
+      logic [DATA_WIDTH-1:0] expected_data;
       $display("\n--- Test 4: Partial Write (Byte 1-2) ---");
+      master_vip.write(
+        .addr(32'h3000),
+        .data(32'hFFFF0000),
+        .strb(4'hF),
+        .id(4'd0),
+        .resp(resp)
+      );
+      assert(resp == 2'b00) else $error("Initial write response mismatch resp=%0h", resp);
       master_vip.write(
         .addr(32'h3000),
         .data(32'h12345678),
@@ -182,7 +205,81 @@ module axi4_full_vip_tb;
         .id(4'd0),
         .resp(resp)
       );
-      repeat (2) @(posedge clk);
+      assert(resp == 2'b00) else $error("Partial write response mismatch resp=%0h", resp);
+      expected_data = apply_wstrb(32'hFFFF0000, 32'h12345678, 4'b0110);
+      check_single_read(32'h3000, expected_data, 4'd0);
+    end
+
+    `TEST_CASE("INCR Burst Write-Read")
+    begin
+      logic [DATA_WIDTH-1:0] wr_data [];
+      logic [STRB_WIDTH-1:0] wr_strb [];
+      logic [DATA_WIDTH-1:0] rd_data [];
+      logic [1:0]            rd_resp [];
+      logic [1:0]            resp;
+
+      $display("\n--- Test 5: INCR Burst Write-Read ---");
+      wr_data = new[4];
+      wr_strb = new[4];
+      rd_data = new[4];
+      rd_resp = new[4];
+      for (int i = 0; i < 4; i++) begin
+        wr_data[i] = build_data(i);
+        wr_strb[i] = '1;
+      end
+
+      master_vip.write_burst(
+        .addr(32'h4000),
+        .data(wr_data),
+        .strb(wr_strb),
+        .id(4'd5),
+        .burst(2'b01),
+        .resp(resp)
+      );
+      assert(resp == 2'b00) else $error("INCR burst write response mismatch resp=%0h", resp);
+
+      master_vip.read_burst(
+        .addr(32'h4000),
+        .beat_count(4),
+        .data(rd_data),
+        .resp(rd_resp),
+        .id(4'd5),
+        .burst(2'b01)
+      );
+
+      for (int i = 0; i < 4; i++) begin
+        assert(rd_resp[i] == 2'b00) else $error("INCR burst read response mismatch beat=%0d", i);
+        assert(rd_data[i] == wr_data[i])
+          else $error("INCR burst data mismatch beat=%0d exp=%h got=%h", i, wr_data[i], rd_data[i]);
+      end
+    end
+
+    `TEST_CASE("FIXED Burst Byte Mask")
+    begin
+      logic [DATA_WIDTH-1:0] wr_data [];
+      logic [STRB_WIDTH-1:0] wr_strb [];
+      logic [1:0]            resp;
+      logic [DATA_WIDTH-1:0] expected_data;
+
+      $display("\n--- Test 6: FIXED Burst Byte Mask ---");
+      wr_data = new[3];
+      wr_strb = new[3];
+      wr_data[0] = 32'h000000AA; wr_strb[0] = 4'b0001;
+      wr_data[1] = 32'h0000BB00; wr_strb[1] = 4'b0010;
+      wr_data[2] = 32'h00CC0000; wr_strb[2] = 4'b0100;
+
+      master_vip.write_burst(
+        .addr(32'h5000),
+        .data(wr_data),
+        .strb(wr_strb),
+        .id(4'd6),
+        .burst(2'b00),
+        .resp(resp)
+      );
+      assert(resp == 2'b00) else $error("FIXED burst write response mismatch resp=%0h", resp);
+
+      expected_data = 32'h00CCBBAA;
+      check_single_read(32'h5000, expected_data, 4'd6);
     end
   end
 

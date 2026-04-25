@@ -75,6 +75,40 @@ class Axi4FullMasterVIP #(
     end
   endtask
 
+  task automatic clear_outputs();
+    vif.awid     = '0;
+    vif.awaddr   = '0;
+    vif.awlen    = '0;
+    vif.awsize   = '0;
+    vif.awburst  = '0;
+    vif.awlock   = '0;
+    vif.awcache  = '0;
+    vif.awprot   = '0;
+    vif.awqos    = '0;
+    vif.awregion = '0;
+    vif.awuser   = '0;
+    vif.awvalid  = 1'b0;
+    vif.wdata    = '0;
+    vif.wstrb    = '0;
+    vif.wlast    = 1'b0;
+    vif.wuser    = '0;
+    vif.wvalid   = 1'b0;
+    vif.bready   = 1'b0;
+    vif.arid     = '0;
+    vif.araddr   = '0;
+    vif.arlen    = '0;
+    vif.arsize   = '0;
+    vif.arburst  = '0;
+    vif.arlock   = '0;
+    vif.arcache  = '0;
+    vif.arprot   = '0;
+    vif.arqos    = '0;
+    vif.arregion = '0;
+    vif.aruser   = '0;
+    vif.arvalid  = 1'b0;
+    vif.rready   = 1'b0;
+  endtask
+
   // Write transaction: address, data, and response
   task write(
     input  logic [ADDR_WIDTH-1:0]   addr,
@@ -87,14 +121,38 @@ class Axi4FullMasterVIP #(
     input  logic [PROT_WIDTH-1:0]   prot = 3'b000,
     output logic [1:0]              resp
   );
+    logic [DATA_WIDTH-1:0] burst_data [1];
+    logic [STRB_WIDTH-1:0] burst_strb [1];
+    begin
+      burst_data[0] = data;
+      burst_strb[0] = strb;
+      write_burst(addr, burst_data, burst_strb, id, size, burst, prot, resp);
+    end
+  endtask
+
+  task write_burst(
+    input  logic [ADDR_WIDTH-1:0]   addr,
+    input  logic [DATA_WIDTH-1:0]   data[],
+    input  logic [STRB_WIDTH-1:0]   strb[],
+    input  logic [ID_WIDTH-1:0]     id = '0,
+    input  logic [SIZE_WIDTH-1:0]   size = $clog2(STRB_WIDTH),
+    input  logic [BURST_WIDTH-1:0]  burst = 2'b01,
+    input  logic [PROT_WIDTH-1:0]   prot = 3'b000,
+    output logic [1:0]              resp
+  );
     bit aw_done;
-    bit w_done;
+    int unsigned beat_count;
+    int unsigned beat_idx;
+
+    beat_count = data.size();
+    assert(beat_count > 0) else $fatal(1, "%s write_burst called with no data beats", vip_name);
+    assert(strb.size() >= beat_count) else $fatal(1, "%s write_burst strb array too short", vip_name);
 
     apply_pause();
 
     vif.awid      = id;
     vif.awaddr    = addr;
-    vif.awlen     = len;
+    vif.awlen     = LEN_WIDTH'(beat_count - 1);
     vif.awsize    = size;
     vif.awburst   = burst;
     vif.awprot    = prot;
@@ -105,26 +163,33 @@ class Axi4FullMasterVIP #(
     vif.awuser    = '0;
     vif.awvalid   = 1'b1;
 
-    vif.wdata     = data;
-    vif.wstrb     = strb;
-    vif.wlast     = 1'b1;  // Single beat
+    vif.wdata     = data[0];
+    vif.wstrb     = strb[0];
+    vif.wlast     = (beat_count == 1);
     vif.wuser     = '0;
     vif.wvalid    = 1'b1;
 
     vif.bready    = 1'b1;
 
     aw_done = 1'b0;
-    w_done  = 1'b0;
+    beat_idx = 0;
 
-    while (!(aw_done && w_done)) begin
+    while (beat_idx < beat_count) begin
       @(posedge vif.aclk);
       if (!aw_done && vif.awvalid && vif.awready) begin
         aw_done = 1'b1;
         vif.awvalid = 1'b0;
       end
-      if (!w_done && vif.wvalid && vif.wready) begin
-        w_done = 1'b1;
-        vif.wvalid = 1'b0;
+      if (vif.wvalid && vif.wready) begin
+        beat_idx++;
+        if (beat_idx < beat_count) begin
+          vif.wdata = data[beat_idx];
+          vif.wstrb = strb[beat_idx];
+          vif.wlast = (beat_idx == (beat_count - 1));
+        end else begin
+          vif.wvalid = 1'b0;
+          vif.wlast  = 1'b0;
+        end
       end
     end
 
@@ -133,8 +198,8 @@ class Axi4FullMasterVIP #(
     end while (!(vif.bvalid && vif.bready));
 
     resp = vif.bresp;
-    $display("[%0t] %s TX WRITE addr=%h data=%h strb=%h id=%0d len=%0d burst=%0d bresp=%0h",
-             $time, vip_name, addr, data, strb, id, len, burst, resp);
+    $display("[%0t] %s TX WRITE_BURST addr=%h beats=%0d id=%0d burst=%0d bresp=%0h",
+             $time, vip_name, addr, beat_count, id, burst, resp);
     vif.bready = 1'b0;
   endtask
 
@@ -149,11 +214,36 @@ class Axi4FullMasterVIP #(
     input  logic [BURST_WIDTH-1:0]  burst = 2'b01, // INCR
     input  logic [PROT_WIDTH-1:0]   prot = 3'b000
   );
+    logic [DATA_WIDTH-1:0] burst_data [];
+    logic [1:0] burst_resp [];
+    begin
+      burst_data = new[1];
+      burst_resp = new[1];
+      read_burst(addr, 1, burst_data, burst_resp, id, size, burst, prot);
+      data = burst_data[0];
+      resp = burst_resp[0];
+    end
+  endtask
+
+  task read_burst(
+    input  logic [ADDR_WIDTH-1:0]   addr,
+    input  int unsigned             beat_count,
+    ref    logic [DATA_WIDTH-1:0]   data[],
+    ref    logic [1:0]              resp[],
+    input  logic [ID_WIDTH-1:0]     id = '0,
+    input  logic [SIZE_WIDTH-1:0]   size = $clog2(STRB_WIDTH),
+    input  logic [BURST_WIDTH-1:0]  burst = 2'b01,
+    input  logic [PROT_WIDTH-1:0]   prot = 3'b000
+  );
+    int unsigned beat_idx;
+
+    assert(beat_count > 0) else $fatal(1, "%s read_burst called with no beats", vip_name);
+
     apply_pause();
 
     vif.arid      = id;
     vif.araddr    = addr;
-    vif.arlen     = len;
+    vif.arlen     = LEN_WIDTH'(beat_count - 1);
     vif.arsize    = size;
     vif.arburst   = burst;
     vif.arprot    = prot;
@@ -164,18 +254,25 @@ class Axi4FullMasterVIP #(
     vif.aruser    = '0;
     vif.arvalid   = 1'b1;
     vif.rready    = 1'b1;
+    beat_idx      = 0;
 
     do begin
       @(posedge vif.aclk);
       if (vif.arvalid && vif.arready) begin
         vif.arvalid = 1'b0;
       end
-    end while (!(vif.rvalid && vif.rready));
+      if (vif.rvalid && vif.rready) begin
+        data[beat_idx] = vif.rdata;
+        resp[beat_idx] = vif.rresp;
+        assert(vif.rid == id) else $error("%s read ID mismatch exp=%0d got=%0d", vip_name, id, vif.rid);
+        assert(vif.rlast == (beat_idx == (beat_count - 1)))
+          else $error("%s rlast mismatch beat=%0d beats=%0d", vip_name, beat_idx, beat_count);
+        beat_idx++;
+      end
+    end while (beat_idx < beat_count);
 
-    data = vif.rdata;
-    resp = vif.rresp;
-    $display("[%0t] %s RX READ  addr=%h data=%h id=%0d len=%0d burst=%0d rresp=%0h",
-             $time, vip_name, addr, data, id, len, burst, resp);
+    $display("[%0t] %s RX READ_BURST addr=%h beats=%0d id=%0d burst=%0d",
+             $time, vip_name, addr, beat_count, id, burst);
     vif.rready = 1'b0;
   endtask
 

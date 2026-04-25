@@ -1,29 +1,28 @@
-#!/usr/bin/env python3
-"""
-AXI4 Full VIP Test Runner using VUnit
-"""
-
+import sys
 from pathlib import Path
+
 from vunit import VUnit
 
-# Get the directory of this script
-root_dir = Path(__file__).parent
-sim_dir = root_dir / "sim"
-tb_dir = root_dir / "tb"
-doc_dir = root_dir / "doc"
+ROOT = Path(__file__).parents[0]
 
-# Create VUnit instance with ModelSim as simulator
-vu = VUnit.from_argv(compile_builtins=False)
+argv = list(sys.argv[1:])
 
-# Add library
-lib = vu.add_library("axi4_full_vip_lib")
+vu = VUnit.from_argv(argv=argv, compile_builtins=False)
+vu.add_verilog_builtins()
 
-# Add DUT and testbench
-lib.add_source_file(tb_dir / "axi4_full_dut.sv")
-lib.add_source_file(tb_dir / "axi4_full_vip_tb.sv")
+lib = vu.add_library("lib")
+lib.add_source_files(
+    [
+        ROOT / "tb/axi4_full_vip_tb.sv",
+    ],
+    include_dirs=[(ROOT / "sim").as_posix()],
+)
 
-# Set simulator options for ModelSim
+lib.set_sim_option(
+    name="modelsim.init_file.gui",
+    value=str(ROOT / "tb/axi4_full_vip_tb.do"),
+)
+
 vu.set_compile_option("modelsim.vlog_flags", ["-sv"])
 
-# Run the tests
 vu.main()
