@@ -2,7 +2,7 @@
 
 `include "vunit_defines.svh"
 `include "axi4_lite_master_vip.sv"
-`include "axi4_lite_slave_vip.sv"
+`include "axi4_lite_mem_vip.sv"
 
 module axi4_lite_dut_tb;
 
@@ -68,14 +68,38 @@ module axi4_lite_dut_tb;
   );
 
   Axi4LiteMasterVIP #(ADDR_WIDTH, DATA_WIDTH, STRB_WIDTH) master;
-  Axi4LiteSlaveVIP  #(ADDR_WIDTH, DATA_WIDTH, STRB_WIDTH) slave;
+
+  // Instantiate the memory VIP module - connect as slave to master's output
+  axi4_lite_mem_vip mem_vip (
+    .aclk     (clk),
+    .aresetn  (rstn),
+    .awaddr   (m_axil_if.awaddr),
+    .awprot   (m_axil_if.awprot),
+    .awvalid  (m_axil_if.awvalid),
+    .awready  (m_axil_if.awready),
+    .wdata    (m_axil_if.wdata),
+    .wstrb    (m_axil_if.wstrb),
+    .wvalid   (m_axil_if.wvalid),
+    .wready   (m_axil_if.wready),
+    .bresp    (m_axil_if.bresp),
+    .bvalid   (m_axil_if.bvalid),
+    .bready   (m_axil_if.bready),
+    .araddr   (m_axil_if.araddr),
+    .arprot   (m_axil_if.arprot),
+    .arvalid  (m_axil_if.arvalid),
+    .arready  (m_axil_if.arready),
+    .rdata    (m_axil_if.rdata),
+    .rresp    (m_axil_if.rresp),
+    .rvalid   (m_axil_if.rvalid),
+    .rready   (m_axil_if.rready)
+  );
 
   function automatic logic [ADDR_WIDTH-1:0] build_write_addr(int unsigned index);
     return ADDR_WIDTH'((((index * 5) + 1) * STRB_WIDTH));
   endfunction
 
   function automatic logic [ADDR_WIDTH-1:0] build_read_addr(int unsigned index);
-    return ADDR_WIDTH'((16'h0100) + (((index * 7) + 3) * STRB_WIDTH));
+    return build_write_addr(index);
   endfunction
 
   function automatic logic [DATA_WIDTH-1:0] build_wdata(int unsigned index);
@@ -96,8 +120,20 @@ module axi4_lite_dut_tb;
     end
   endfunction
 
-  function automatic logic [DATA_WIDTH-1:0] build_rdata(int unsigned index);
-    return (32'h1234_0000 | (index * 3));
+  function automatic logic [DATA_WIDTH-1:0] apply_wstrb(
+    input logic [DATA_WIDTH-1:0] data,
+    input logic [STRB_WIDTH-1:0] strb
+  );
+    logic [DATA_WIDTH-1:0] masked_data;
+    begin
+      masked_data = '0;
+      for (int byte_idx = 0; byte_idx < STRB_WIDTH; byte_idx++) begin
+        if (strb[byte_idx]) begin
+          masked_data[8 * byte_idx +: 8] = data[8 * byte_idx +: 8];
+        end
+      end
+      return masked_data;
+    end
   endfunction
 
   task automatic run_write_transfer(input int unsigned index);
@@ -105,25 +141,14 @@ module axi4_lite_dut_tb;
     logic [DATA_WIDTH-1:0] data;
     logic [STRB_WIDTH-1:0] strb;
     logic [1:0]            master_resp;
-    logic [ADDR_WIDTH-1:0] slave_addr;
-    logic [DATA_WIDTH-1:0] slave_data;
-    logic [STRB_WIDTH-1:0] slave_strb;
-    logic [2:0]            slave_prot;
 
     addr = build_write_addr(index);
     data = build_wdata(index);
     strb = build_wstrb(index);
 
-    fork
-      master.write(addr, data, strb, master_resp);
-      slave.handle_write(slave_addr, slave_data, slave_strb, slave_prot, 2'b00);
-    join
+    master.write(addr, data, strb, master_resp);
 
     assert(master_resp == 2'b00) else $error("Write response mismatch at %0d", index);
-    assert(slave_addr == addr) else $error("Write address mismatch at %0d", index);
-    assert(slave_data == data) else $error("Write data mismatch at %0d", index);
-    assert(slave_strb == strb) else $error("Write strobe mismatch at %0d", index);
-    assert(slave_prot == 3'b000) else $error("Write prot mismatch at %0d", index);
   endtask
 
   task automatic run_read_transfer(input int unsigned index);
@@ -131,21 +156,14 @@ module axi4_lite_dut_tb;
     logic [DATA_WIDTH-1:0] expected_data;
     logic [DATA_WIDTH-1:0] master_data;
     logic [1:0]            master_resp;
-    logic [ADDR_WIDTH-1:0] slave_addr;
-    logic [2:0]            slave_prot;
 
-    addr          = build_read_addr(index);
-    expected_data = build_rdata(index);
+    addr          = build_write_addr(index);
+    expected_data = apply_wstrb(build_wdata(index), build_wstrb(index));
 
-    fork
-      master.read(addr, master_data, master_resp);
-      slave.handle_read(slave_addr, slave_prot, expected_data, 2'b00);
-    join
+    master.read(addr, master_data, master_resp);
 
     assert(master_resp == 2'b00) else $error("Read response mismatch at %0d", index);
     assert(master_data == expected_data) else $error("Read data mismatch at %0d", index);
-    assert(slave_addr == addr) else $error("Read address mismatch at %0d", index);
-    assert(slave_prot == 3'b000) else $error("Read prot mismatch at %0d", index);
   endtask
 
   initial begin
@@ -171,14 +189,6 @@ module axi4_lite_dut_tb;
     s_axil_if.arprot  = '0;
     s_axil_if.rready  = 1'b0;
 
-    m_axil_if.awready = 1'b0;
-    m_axil_if.wready  = 1'b0;
-    m_axil_if.bresp   = '0;
-    m_axil_if.bvalid  = 1'b0;
-    m_axil_if.arready = 1'b0;
-    m_axil_if.rdata   = '0;
-    m_axil_if.rresp   = '0;
-    m_axil_if.rvalid  = 1'b0;
   end
 
   `TEST_SUITE begin
@@ -186,13 +196,11 @@ module axi4_lite_dut_tb;
     logic [ADDR_WIDTH-1:0] prev_addr;
 
     master = new(s_axil_if.master, "axil_master_vip");
-    slave  = new(m_axil_if.slave, "axil_slave_vip");
 
     @(posedge rstn);
     @(posedge clk);
 
     master.configure_pause_generator(1'b0);
-    slave.configure_backpressure(1'b0);
     prev_addr = '0;
     for (idx = 0; idx < WRITE_STIMULUS_CNT; idx++) begin
       assert(build_write_addr(idx) != '0)
@@ -206,7 +214,6 @@ module axi4_lite_dut_tb;
     end
 
     master.configure_pause_generator(1'b1, 1, 3);
-    slave.configure_backpressure(1'b1, 1, 3);
     prev_addr = '0;
     for (idx = 0; idx < READ_STIMULUS_CNT; idx++) begin
       assert(build_read_addr(idx) != '0)

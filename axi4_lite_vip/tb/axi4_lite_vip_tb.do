@@ -48,9 +48,31 @@ add wave -noupdate -expand -group m_axil_if /axi4_lite_dut_tb/m_axil_if/rdata
 add wave -noupdate -expand -group m_axil_if /axi4_lite_dut_tb/m_axil_if/rresp
 add wave -noupdate -expand -group m_axil_if /axi4_lite_dut_tb/m_axil_if/rvalid
 add wave -noupdate -expand -group m_axil_if /axi4_lite_dut_tb/m_axil_if/rready
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/aclk
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/aresetn
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/awaddr
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/awprot
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/awvalid
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/awready
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/wdata
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/wstrb
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/wvalid
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/wready
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/bresp
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/bvalid
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/bready
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/araddr
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/arprot
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/arvalid
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/arready
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/rdata
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/rresp
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/rvalid
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/rready
+add wave -noupdate -expand -group mem /axi4_lite_dut_tb/mem_vip/mem
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {0 ps} 0}
-quietly wave cursor active 0
+WaveRestoreCursors {{Cursor 1} {25000 ps} 0}
+quietly wave cursor active 1
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
@@ -65,4 +87,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits us
 update
-WaveRestoreZoom {0 ps} {1 ms}
+WaveRestoreZoom {2343066 ps} {2587208 ps}
