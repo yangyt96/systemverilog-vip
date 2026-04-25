@@ -12,10 +12,10 @@ The VIP currently includes:
 - A single-wire UART interface
 - A transmitter VIP with `transmit`
 - A receiver VIP with `receive`
-- Optional pause generation on the transmitter side
 - 8N1 frame support, LSB first
 - Transaction logging to the simulator CLI
-- A VUnit testbench with exact frame checks and continuous frame coverage
+- A VUnit testbench with exact frame checks, a constant 10 us inter-frame gap,
+  and continuous frame coverage
 
 ## Folder Structure
 
@@ -52,15 +52,6 @@ Main API:
 ```systemverilog
 tx_vip.transmit(data);
 ```
-
-Pause generation:
-
-```systemverilog
-tx_vip.configure_pause_generator(enable, min_cycles, max_cycles);
-```
-
-Pause generation inserts idle time before a new UART frame starts. It is not
-receiver backpressure.
 
 ### `UartRxVIP`
 

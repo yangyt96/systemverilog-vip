@@ -10,9 +10,9 @@ module uart_vip_tb;
 
   localparam int CLKS_PER_BIT            = 16;
   localparam int DATA_BITS               = 8;
-  localparam int BASIC_STIMULUS_COUNT    = 32;
-  localparam int PAUSE_STIMULUS_COUNT    = 24;
+  localparam int STIMULUS_COUNT          = 56;
   localparam int CONTINUOUS_FRAME_COUNT  = 48;
+  localparam time INTER_TRANSACTION_PAUSE = 10us;
 
   logic clk;
   logic rstn;
@@ -42,13 +42,14 @@ module uart_vip_tb;
     assert(rx_data == exp_data)
       else $error("UART data mismatch at stimulus %0d exp=%h got=%h", index, exp_data, rx_data);
 
-    @(posedge clk);
+    #(INTER_TRANSACTION_PAUSE);
   endtask
 
   task automatic drive_frames(input int unsigned start_index,
                               input int unsigned frame_count);
     for (int unsigned idx = start_index; idx < (start_index + frame_count); idx++) begin
       tx_vip.transmit(build_data(idx));
+      #(INTER_TRANSACTION_PAUSE);
     end
   endtask
 
@@ -95,19 +96,10 @@ module uart_vip_tb;
     @(posedge rstn);
     @(posedge clk);
 
-    tx_vip.configure_pause_generator(1'b0);
-    for (stimulus_idx = 0; stimulus_idx < BASIC_STIMULUS_COUNT; stimulus_idx++) begin
+    for (stimulus_idx = 0; stimulus_idx < STIMULUS_COUNT; stimulus_idx++) begin
       run_frame(stimulus_idx);
     end
 
-    tx_vip.configure_pause_generator(1'b1, CLKS_PER_BIT, CLKS_PER_BIT * 3);
-    for (stimulus_idx = BASIC_STIMULUS_COUNT;
-         stimulus_idx < (BASIC_STIMULUS_COUNT + PAUSE_STIMULUS_COUNT);
-         stimulus_idx++) begin
-      run_frame(stimulus_idx);
-    end
-
-    tx_vip.configure_pause_generator(1'b0);
     fork
       drive_frames(0, CONTINUOUS_FRAME_COUNT);
       monitor_frames(0, CONTINUOUS_FRAME_COUNT, observed_count);
