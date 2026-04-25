@@ -15,7 +15,10 @@ lib.add_source_files(
     [
         ROOT / "tb/axi4_full_vip_tb.sv",
     ],
-    include_dirs=[(ROOT / "sim").as_posix()],
+    include_dirs=[
+        (ROOT / "sim").as_posix(),
+        (ROOT / "tb").as_posix(),
+    ],
 )
 
 lib.set_sim_option(

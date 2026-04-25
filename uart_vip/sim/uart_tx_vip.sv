@@ -5,10 +5,16 @@ class UartTxVIP #(
 
   virtual uart_if.transmitter vif;
   string vip_name;
+  int unsigned timeout_cycles;
 
   function new(virtual uart_if.transmitter vif, string vip_name = "uart_tx_vip");
     this.vif = vif;
     this.vip_name = vip_name;
+    timeout_cycles = 10000;
+  endfunction
+
+  function void configure_timeout(int unsigned cycles);
+    timeout_cycles = cycles;
   endfunction
 
   task automatic idle();
@@ -22,7 +28,16 @@ class UartTxVIP #(
 
   // API: transmit one UART frame, 8N1 by default, LSB first.
   task transmit(input logic [DATA_BITS-1:0] data);
-    while (!vif.rstn) @(posedge vif.clk);
+    int unsigned cycles;
+
+    cycles = 0;
+    while (!vif.rstn) begin
+      @(posedge vif.clk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for UART reset release", vip_name);
+      end
+    end
     @(posedge vif.clk);
 
     drive_bit(1'b0);

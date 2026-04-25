@@ -6,6 +6,11 @@ kept intentionally small: each protocol has a `sim/` directory for reusable
 interfaces/classes, a `tb/` directory for self-checking bring-up tests, and a
 protocol README under `doc/`.
 
+Each `tb/run.py` compiles one top-level testbench. That testbench includes its
+protocol interface, VIP classes, and any local DUT/memory model through the
+`sim/` and `tb/` include paths, so compile order stays explicit and consistent
+across all VIPs.
+
 ## VIPs
 
 | VIP | Summary |
@@ -43,6 +48,14 @@ Example:
 
 ```bash
 docker run --rm -v "$PWD":/work -w /work/i2c_vip/tb modelsim:20.1 python3 run.py
+```
+
+Run all VIP regressions with the local ModelSim Docker image:
+
+```bash
+for vip in apb_vip axi4_lite_vip axi4_stream_vip axi4_full_vip i2c_vip i2s_vip spi_vip uart_vip; do
+  docker run --rm -v "$PWD":/work -w /work/$vip/tb modelsim:20.1 python3 run.py
+done
 ```
 
 ## GUI Use

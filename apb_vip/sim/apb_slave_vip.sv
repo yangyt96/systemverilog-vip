@@ -8,17 +8,35 @@ class ApbSlaveVIP #(
   virtual apb_if #(ADDR_WIDTH, DATA_WIDTH, STRB_WIDTH, PROT_WIDTH).slave vif;
   string vip_name;
   int unsigned ready_delay_cycles;
+  int unsigned timeout_cycles;
 
   function new(virtual apb_if #(ADDR_WIDTH, DATA_WIDTH, STRB_WIDTH, PROT_WIDTH).slave vif,
                string vip_name = "apb_slave_vip");
     this.vif = vif;
     this.vip_name = vip_name;
     ready_delay_cycles = 0;
+    timeout_cycles = 1000;
   endfunction
 
   function void configure_ready_delay(int unsigned cycles);
     ready_delay_cycles = cycles;
   endfunction
+
+  function void configure_timeout(int unsigned cycles);
+    timeout_cycles = cycles;
+  endfunction
+
+  task automatic wait_reset_release();
+    int unsigned cycles;
+    cycles = 0;
+    while (!vif.presetn) begin
+      @(posedge vif.pclk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for APB reset release", vip_name);
+      end
+    end
+  endtask
 
   task automatic idle();
     vif.prdata  = '0;
@@ -27,9 +45,17 @@ class ApbSlaveVIP #(
   endtask
 
   task automatic wait_access(input bit expect_write);
-    while (!vif.presetn) @(posedge vif.pclk);
+    int unsigned cycles;
+
+    wait_reset_release();
+    cycles = 0;
     do begin
       @(posedge vif.pclk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for APB %s access", vip_name,
+               expect_write ? "write" : "read");
+      end
     end while (!(vif.psel && vif.penable && (vif.pwrite == expect_write)));
   endtask
 

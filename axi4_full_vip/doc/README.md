@@ -31,8 +31,8 @@ axi4_full_vip/
 │   └── axi4_full_mem_vip.sv
 ├── tb/
 │   ├── axi4_full_vip_tb.do
-│   └── axi4_full_vip_tb.sv
-└── run.py
+│   ├── axi4_full_vip_tb.sv
+│   └── run.py
 ```
 
 ## Main Components
@@ -76,6 +76,7 @@ The VUnit testbench connects `Axi4FullMasterVIP` directly to
 - Partial byte-mask writes
 - `INCR` burst write/read
 - `FIXED` burst byte-mask behavior
+- AXI4 master transaction timeout protection
 
 ## Running the Simulation
 

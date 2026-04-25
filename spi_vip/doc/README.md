@@ -14,6 +14,7 @@ The VIP currently includes:
 - A slave VIP with `transfer`
 - SPI mode 0 behavior by default: `CPOL=0`, `CPHA=0`
 - MSB-first full-duplex transfers
+- Transaction timeout protection
 - Transaction logging to the simulator CLI
 - A VUnit testbench with exact transfer checks, a constant 10 us inter-transfer
   gap, and continuous transfer coverage
@@ -30,8 +31,8 @@ spi_vip/
 │   └── spi_slave_vip.sv
 ├── tb/
 │   ├── spi_vip_tb.do
-│   └── spi_vip_tb.sv
-└── run.py
+│   ├── spi_vip_tb.sv
+│   └── run.py
 ```
 
 ## Main Components

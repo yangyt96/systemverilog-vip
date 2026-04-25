@@ -31,8 +31,8 @@ axi4_stream_vip/
 ├── tb/
 │   ├── axi4_stream_dut.sv
 │   ├── axi4_stream_vip_tb.do
-│   └── axi4_stream_vip_tb.sv
-└── run.py
+│   ├── axi4_stream_vip_tb.sv
+│   └── run.py
 ```
 
 ## Main Components
@@ -147,6 +147,8 @@ Current coverage includes:
 - pause generator enabled on the master
 - backpressure enabled on the slave
 - continuous packet injection and continuous packet observation
+- ready/valid payload stability checks while stalled
+- master/slave transaction timeout protection
 
 The DUT in `tb/axi4_stream_dut.sv` is a simple one-stage AXI Stream pipeline used
 for VIP bring-up and regression.
@@ -165,10 +167,9 @@ With Docker:
 docker run --rm -v "$PWD":/work -w /work/axi4_stream_vip/tb modelsim:20.1 python3 run.py
 ```
 
-The VUnit runner compiles:
-
-- `axi4_stream_vip/sim/*.sv`
-- `axi4_stream_vip/tb/*.sv`
+The VUnit runner compiles `tb/axi4_stream_vip_tb.sv` as the single top-level
+testbench. The testbench includes the interface, VIP classes, and local DUT
+through the `sim/` and `tb/` include paths.
 
 ## Notes
 

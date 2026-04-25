@@ -1,9 +1,9 @@
 `timescale 1ns/1ps
 
 `include "vunit_defines.svh"
-`include "../sim/axi4_full_if.sv"
-`include "../sim/axi4_full_master_vip.sv"
-`include "../sim/axi4_full_mem_vip.sv"
+`include "axi4_full_if.sv"
+`include "axi4_full_master_vip.sv"
+`include "axi4_full_mem_vip.sv"
 
 module axi4_full_vip_tb;
 

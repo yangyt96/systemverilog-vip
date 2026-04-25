@@ -12,6 +12,7 @@ class Axi4StreamSlaveVIP #(
   bit enable_backpressure;
   int unsigned min_stall_cycles;
   int unsigned max_stall_cycles;
+  int unsigned timeout_cycles;
 
   // constructor
   function new(
@@ -22,6 +23,7 @@ class Axi4StreamSlaveVIP #(
     enable_backpressure = 1'b0;
     min_stall_cycles    = 0;
     max_stall_cycles    = 0;
+    timeout_cycles      = 1000;
   endfunction
 
   function void configure_backpressure(bit enable, int unsigned min_cycles = 0,
@@ -31,6 +33,22 @@ class Axi4StreamSlaveVIP #(
     max_stall_cycles    = (max_cycles < min_cycles) ? min_cycles : max_cycles;
   endfunction
 
+  function void configure_timeout(int unsigned cycles);
+    timeout_cycles = cycles;
+  endfunction
+
+  task automatic wait_reset_release();
+    int unsigned cycles;
+    cycles = 0;
+    while (!vif.aresetn) begin
+      @(posedge vif.aclk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for AXI-Stream reset release", vip_name);
+      end
+    end
+  endtask
+
   // API: receive
   task receive(output logic [DATA_WIDTH-1:0] tdata, output logic [KEEP_WIDTH-1:0] tkeep,
                output logic [KEEP_WIDTH-1:0] tstrb, output bit tlast,
@@ -38,7 +56,7 @@ class Axi4StreamSlaveVIP #(
                output logic [TUSER_WIDTH-1:0] tuser);
     int unsigned stall_cycles;
 
-    while (!vif.aresetn) @(posedge vif.aclk);
+    wait_reset_release();
     vif.tready = 1'b0;
 
     if (enable_backpressure) begin
@@ -50,9 +68,17 @@ class Axi4StreamSlaveVIP #(
     vif.tready = 1'b1;
 
     // Capture on a real handshake edge so back-to-back traffic is sampled correctly.
-    do begin
-      @(posedge vif.aclk);
-    end while (!(vif.tvalid && vif.tready));
+    begin
+      int unsigned cycles;
+      cycles = 0;
+      do begin
+        @(posedge vif.aclk);
+        cycles++;
+        if (cycles >= timeout_cycles) begin
+          $fatal(1, "%s timed out waiting for TVALID", vip_name);
+        end
+      end while (!(vif.tvalid && vif.tready));
+    end
 
     // capture signals
     tdata = vif.tdata;

@@ -14,6 +14,8 @@ The VIP currently includes:
 - A slave VIP with matching `expect_write` and `respond_read` APIs
 - 7-bit addressing
 - ACK/NACK checking
+- Wrong-address NACK checking
+- Transaction timeout protection
 - Transaction logging to the simulator CLI
 - A VUnit testbench with write, read, and continuous read coverage
 
@@ -29,8 +31,8 @@ i2c_vip/
 │   └── i2c_slave_vip.sv
 ├── tb/
 │   ├── i2c_vip_tb.do
-│   └── i2c_vip_tb.sv
-└── run.py
+│   ├── i2c_vip_tb.sv
+│   └── run.py
 ```
 
 ## Main Components

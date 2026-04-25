@@ -13,6 +13,7 @@ The VIP currently includes:
 - A receiver VIP with `receive`
 - Stereo frame support with `WS=0` for left and `WS=1` for right
 - MSB-first sample transfer with one I2S lead bit before each channel MSB
+- Transaction timeout protection
 - A self-checking VUnit testbench and ModelSim waveform setup
 
 ## Folder Structure

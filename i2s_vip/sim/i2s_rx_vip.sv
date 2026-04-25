@@ -4,10 +4,16 @@ class I2SRxVIP #(
 
   virtual i2s_if.receiver vif;
   string vip_name;
+  int unsigned timeout_cycles;
 
   function new(virtual i2s_if.receiver vif, string vip_name = "i2s_rx_vip");
     this.vif = vif;
     this.vip_name = vip_name;
+    timeout_cycles = 10000;
+  endfunction
+
+  function void configure_timeout(int unsigned cycles);
+    timeout_cycles = cycles;
   endfunction
 
   // API: receive one stereo I2S frame, MSB first.
@@ -17,8 +23,25 @@ class I2SRxVIP #(
     right_sample = '0;
     frame_error  = 1'b0;
 
-    while (!vif.rstn) @(posedge vif.clk);
-    while (!(vif.bclk === 1'b0 && vif.ws === 1'b0)) @(posedge vif.clk);
+    begin
+      int unsigned cycles;
+      cycles = 0;
+      while (!vif.rstn) begin
+        @(posedge vif.clk);
+        cycles++;
+        if (cycles >= timeout_cycles) begin
+          $fatal(1, "%s timed out waiting for I2S reset release", vip_name);
+        end
+      end
+      cycles = 0;
+      while (!(vif.bclk === 1'b0 && vif.ws === 1'b0)) begin
+        @(posedge vif.clk);
+        cycles++;
+        if (cycles >= timeout_cycles) begin
+          $fatal(1, "%s timed out waiting for I2S frame idle", vip_name);
+        end
+      end
+    end
 
     @(posedge vif.bclk);
     if (vif.ws !== 1'b0) begin

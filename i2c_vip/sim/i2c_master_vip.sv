@@ -4,10 +4,16 @@ class I2CMasterVIP #(
 
   virtual i2c_if.master vif;
   string vip_name;
+  int unsigned timeout_cycles;
 
   function new(virtual i2c_if.master vif, string vip_name = "i2c_master_vip");
     this.vif = vif;
     this.vip_name = vip_name;
+    timeout_cycles = 20000;
+  endfunction
+
+  function void configure_timeout(int unsigned cycles);
+    timeout_cycles = cycles;
   endfunction
 
   task automatic idle();
@@ -20,9 +26,16 @@ class I2CMasterVIP #(
   endtask
 
   task automatic release_scl();
+    int unsigned cycles;
+
     vif.master_scl_low = 1'b0;
+    cycles = 0;
     do begin
       @(posedge vif.clk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for I2C SCL release", vip_name);
+      end
     end while (vif.scl !== 1'b1);
   endtask
 
@@ -91,7 +104,16 @@ class I2CMasterVIP #(
 
   task automatic write_byte(input logic [6:0] address, input logic [7:0] data,
                             output bit address_ack, output bit data_ack);
-    while (!vif.rstn) @(posedge vif.clk);
+    int unsigned cycles;
+
+    cycles = 0;
+    while (!vif.rstn) begin
+      @(posedge vif.clk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for I2C reset release", vip_name);
+      end
+    end
     @(posedge vif.clk);
 
     start_condition();
@@ -105,7 +127,16 @@ class I2CMasterVIP #(
 
   task automatic read_byte(input logic [6:0] address, output logic [7:0] data,
                            output bit address_ack);
-    while (!vif.rstn) @(posedge vif.clk);
+    int unsigned cycles;
+
+    cycles = 0;
+    while (!vif.rstn) begin
+      @(posedge vif.clk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for I2C reset release", vip_name);
+      end
+    end
     @(posedge vif.clk);
 
     start_condition();

@@ -29,8 +29,8 @@ axi4_lite_vip/
 │   └── axi4_lite_mem_vip.sv
 ├── tb/
 │   ├── axi4_lite_vip_tb.do
-│   └── axi4_lite_vip_tb.sv
-└── run.py
+│   ├── axi4_lite_vip_tb.sv
+│   └── run.py
 ```
 
 ## Main Components
@@ -77,6 +77,7 @@ It checks:
 - Readback data correctness
 - Byte-strobe masking
 - Master pause generation
+- AXI4-Lite master transaction timeout protection
 
 ## Running the Simulation
 

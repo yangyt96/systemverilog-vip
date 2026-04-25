@@ -13,6 +13,7 @@ The VIP currently includes:
 - A transmitter VIP with `transmit`
 - A receiver VIP with `receive`
 - 8N1 frame support, LSB first
+- Transaction timeout protection
 - Transaction logging to the simulator CLI
 - A VUnit testbench with exact frame checks, a constant 10 us inter-frame gap,
   and continuous frame coverage
@@ -29,8 +30,8 @@ uart_vip/
 │   └── uart_tx_vip.sv
 ├── tb/
 │   ├── uart_vip_tb.do
-│   └── uart_vip_tb.sv
-└── run.py
+│   ├── uart_vip_tb.sv
+│   └── run.py
 ```
 
 ## Main Components

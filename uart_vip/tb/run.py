@@ -13,10 +13,12 @@ vu.add_verilog_builtins()
 lib = vu.add_library("lib")
 lib.add_source_files(
     [
-        ROOT / "sim/*.sv",
-        ROOT / "tb/*.sv",
+        ROOT / "tb/uart_vip_tb.sv",
     ],
-    include_dirs=[(ROOT / "sim").as_posix()],
+    include_dirs=[
+        (ROOT / "sim").as_posix(),
+        (ROOT / "tb").as_posix(),
+    ],
 )
 
 lib.set_sim_option(

@@ -3,12 +3,18 @@ class I2CSlaveVIP;
   virtual i2c_if.slave vif;
   string vip_name;
   logic [6:0] address;
+  int unsigned timeout_cycles;
 
   function new(virtual i2c_if.slave vif, logic [6:0] address = 7'h52,
                string vip_name = "i2c_slave_vip");
     this.vif = vif;
     this.address = address;
     this.vip_name = vip_name;
+    timeout_cycles = 20000;
+  endfunction
+
+  function void configure_timeout(int unsigned cycles);
+    timeout_cycles = cycles;
   endfunction
 
   task automatic idle();
@@ -17,17 +23,57 @@ class I2CSlaveVIP;
   endtask
 
   task automatic wait_start();
-    while (!vif.rstn) @(posedge vif.clk);
-    while (!(vif.scl === 1'b1 && vif.sda === 1'b1)) @(posedge vif.clk);
+    int unsigned cycles;
+    bit prev_sda;
+
+    cycles = 0;
+    while (!vif.rstn) begin
+      @(posedge vif.clk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for I2C reset release", vip_name);
+      end
+    end
+    cycles = 0;
+    while (!(vif.scl === 1'b1 && vif.sda === 1'b1)) begin
+      @(posedge vif.clk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for I2C idle bus", vip_name);
+      end
+    end
+    cycles = 0;
+    prev_sda = vif.sda;
     do begin
-      @(negedge vif.sda);
-    end while (vif.scl !== 1'b1);
+      @(posedge vif.clk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for I2C start condition", vip_name);
+      end
+      if ((prev_sda === 1'b1) && (vif.sda === 1'b0) && (vif.scl === 1'b1)) begin
+        break;
+      end
+      prev_sda = vif.sda;
+    end while (1);
   endtask
 
   task automatic wait_stop();
+    int unsigned cycles;
+    bit prev_sda;
+
+    cycles = 0;
+    prev_sda = vif.sda;
     do begin
-      @(posedge vif.sda);
-    end while (vif.scl !== 1'b1);
+      @(posedge vif.clk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for I2C stop condition", vip_name);
+      end
+      if ((prev_sda === 1'b0) && (vif.sda === 1'b1) && (vif.scl === 1'b1)) begin
+        break;
+      end
+      prev_sda = vif.sda;
+    end while (1);
   endtask
 
   task automatic read_raw_byte(output logic [7:0] data);

@@ -13,6 +13,7 @@ The VIP currently includes:
 - A slave VIP with `expect_write` and `respond_read` APIs
 - `PREADY` delay insertion on the slave side
 - `PSTRB`, `PPROT`, and `PSLVERR` handling
+- APB access stability checks and transaction timeout protection
 - A self-checking VUnit testbench and ModelSim waveform setup
 
 ## Folder Structure

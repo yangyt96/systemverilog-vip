@@ -46,6 +46,7 @@ class Axi4FullMasterVIP #(
   bit enable_pause_generator;
   int unsigned min_pause_cycles;
   int unsigned max_pause_cycles;
+  int unsigned timeout_cycles;
 
   function new(
       virtual axi4_full_if #(
@@ -73,6 +74,7 @@ class Axi4FullMasterVIP #(
     enable_pause_generator = 1'b0;
     min_pause_cycles = 0;
     max_pause_cycles = 0;
+    timeout_cycles = 2000;
   endfunction
 
   function void configure_pause_generator(bit enable, int unsigned min_cycles = 0,
@@ -82,10 +84,22 @@ class Axi4FullMasterVIP #(
     max_pause_cycles = (max_cycles < min_cycles) ? min_cycles : max_cycles;
   endfunction
 
+  function void configure_timeout(int unsigned cycles);
+    timeout_cycles = cycles;
+  endfunction
+
   task automatic apply_pause();
     int unsigned pause_cycles;
+    int unsigned cycles;
     begin
-      while (!vif.aresetn) @(posedge vif.aclk);
+      cycles = 0;
+      while (!vif.aresetn) begin
+        @(posedge vif.aclk);
+        cycles++;
+        if (cycles >= timeout_cycles) begin
+          $fatal(1, "%s timed out waiting for AXI4 reset release", vip_name);
+        end
+      end
       if (enable_pause_generator) begin
         pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
         repeat (pause_cycles) @(posedge vif.aclk);
@@ -151,6 +165,7 @@ class Axi4FullMasterVIP #(
     bit aw_done;
     int unsigned beat_count;
     int unsigned beat_idx;
+    int unsigned cycles;
 
     beat_count = data.size();
     assert (beat_count > 0)
@@ -183,9 +198,14 @@ class Axi4FullMasterVIP #(
 
     aw_done      = 1'b0;
     beat_idx     = 0;
+    cycles       = 0;
 
     while (beat_idx < beat_count) begin
       @(posedge vif.aclk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for AXI4 write data handshakes", vip_name);
+      end
       if (!aw_done && vif.awvalid && vif.awready) begin
         aw_done = 1'b1;
         vif.awvalid = 1'b0;
@@ -203,8 +223,13 @@ class Axi4FullMasterVIP #(
       end
     end
 
+    cycles = 0;
     do begin
       @(posedge vif.aclk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for AXI4 write response", vip_name);
+      end
     end while (!(vif.bvalid && vif.bready));
 
     resp = vif.bresp;
@@ -237,6 +262,7 @@ class Axi4FullMasterVIP #(
       input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
       input logic [BURST_WIDTH-1:0] burst = 2'b01, input logic [PROT_WIDTH-1:0] prot = 3'b000);
     int unsigned beat_idx;
+    int unsigned cycles;
 
     assert (beat_count > 0)
     else $fatal(1, "%s read_burst called with no beats", vip_name);
@@ -257,13 +283,19 @@ class Axi4FullMasterVIP #(
     vif.arvalid  = 1'b1;
     vif.rready   = 1'b1;
     beat_idx     = 0;
+    cycles       = 0;
 
     do begin
       @(posedge vif.aclk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for AXI4 read data", vip_name);
+      end
       if (vif.arvalid && vif.arready) begin
         vif.arvalid = 1'b0;
       end
       if (vif.rvalid && vif.rready) begin
+        cycles = 0;
         data[beat_idx] = vif.rdata;
         resp[beat_idx] = vif.rresp;
         assert (vif.rid == id)

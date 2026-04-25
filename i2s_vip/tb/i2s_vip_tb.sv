@@ -1,6 +1,7 @@
 `timescale 1ns/1ps
 
 `include "vunit_defines.svh"
+`include "i2s_if.sv"
 `include "i2s_tx_vip.sv"
 `include "i2s_rx_vip.sv"
 

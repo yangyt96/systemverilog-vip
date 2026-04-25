@@ -1,8 +1,10 @@
 `timescale 1ns/1ps
 
 `include "vunit_defines.svh"
+`include "axi4_stream_if.sv"
 `include "axi4_stream_master_vip.sv"
 `include "axi4_stream_slave_vip.sv"
+`include "axi4_stream_dut.sv"
 
 module axi4_stream_dut_tb;
 
@@ -55,6 +57,63 @@ module axi4_stream_dut_tb;
 
   Axi4StreamMasterVIP #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH) master;
   Axi4StreamSlaveVIP  #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH) slave;
+
+  bit s_axis_stalled_q;
+  bit m_axis_stalled_q;
+  logic [DATA_WIDTH-1:0] s_axis_tdata_q;
+  logic [KEEP_WIDTH-1:0] s_axis_tkeep_q;
+  logic [KEEP_WIDTH-1:0] s_axis_tstrb_q;
+  bit s_axis_tlast_q;
+  logic [TID_WIDTH-1:0] s_axis_tid_q;
+  logic [TDEST_WIDTH-1:0] s_axis_tdest_q;
+  logic [TUSER_WIDTH-1:0] s_axis_tuser_q;
+  logic [DATA_WIDTH-1:0] m_axis_tdata_q;
+  logic [KEEP_WIDTH-1:0] m_axis_tkeep_q;
+  logic [KEEP_WIDTH-1:0] m_axis_tstrb_q;
+  bit m_axis_tlast_q;
+  logic [TID_WIDTH-1:0] m_axis_tid_q;
+  logic [TDEST_WIDTH-1:0] m_axis_tdest_q;
+  logic [TUSER_WIDTH-1:0] m_axis_tuser_q;
+
+  always_ff @(posedge clk) begin
+    if (rstn && s_axis_stalled_q && s_axis_if.tvalid && !s_axis_if.tready) begin
+      assert(s_axis_if.tdata == s_axis_tdata_q) else $error("S_AXIS TDATA changed while stalled");
+      assert(s_axis_if.tkeep == s_axis_tkeep_q) else $error("S_AXIS TKEEP changed while stalled");
+      assert(s_axis_if.tstrb == s_axis_tstrb_q) else $error("S_AXIS TSTRB changed while stalled");
+      assert(s_axis_if.tlast == s_axis_tlast_q) else $error("S_AXIS TLAST changed while stalled");
+      assert(s_axis_if.tid == s_axis_tid_q) else $error("S_AXIS TID changed while stalled");
+      assert(s_axis_if.tdest == s_axis_tdest_q) else $error("S_AXIS TDEST changed while stalled");
+      assert(s_axis_if.tuser == s_axis_tuser_q) else $error("S_AXIS TUSER changed while stalled");
+    end
+
+    if (rstn && m_axis_stalled_q && m_axis_if.tvalid && !m_axis_if.tready) begin
+      assert(m_axis_if.tdata == m_axis_tdata_q) else $error("M_AXIS TDATA changed while stalled");
+      assert(m_axis_if.tkeep == m_axis_tkeep_q) else $error("M_AXIS TKEEP changed while stalled");
+      assert(m_axis_if.tstrb == m_axis_tstrb_q) else $error("M_AXIS TSTRB changed while stalled");
+      assert(m_axis_if.tlast == m_axis_tlast_q) else $error("M_AXIS TLAST changed while stalled");
+      assert(m_axis_if.tid == m_axis_tid_q) else $error("M_AXIS TID changed while stalled");
+      assert(m_axis_if.tdest == m_axis_tdest_q) else $error("M_AXIS TDEST changed while stalled");
+      assert(m_axis_if.tuser == m_axis_tuser_q) else $error("M_AXIS TUSER changed while stalled");
+    end
+
+    s_axis_stalled_q <= rstn && s_axis_if.tvalid && !s_axis_if.tready;
+    s_axis_tdata_q   <= s_axis_if.tdata;
+    s_axis_tkeep_q   <= s_axis_if.tkeep;
+    s_axis_tstrb_q   <= s_axis_if.tstrb;
+    s_axis_tlast_q   <= s_axis_if.tlast;
+    s_axis_tid_q     <= s_axis_if.tid;
+    s_axis_tdest_q   <= s_axis_if.tdest;
+    s_axis_tuser_q   <= s_axis_if.tuser;
+
+    m_axis_stalled_q <= rstn && m_axis_if.tvalid && !m_axis_if.tready;
+    m_axis_tdata_q   <= m_axis_if.tdata;
+    m_axis_tkeep_q   <= m_axis_if.tkeep;
+    m_axis_tstrb_q   <= m_axis_if.tstrb;
+    m_axis_tlast_q   <= m_axis_if.tlast;
+    m_axis_tid_q     <= m_axis_if.tid;
+    m_axis_tdest_q   <= m_axis_if.tdest;
+    m_axis_tuser_q   <= m_axis_if.tuser;
+  end
 
   function automatic logic [DATA_WIDTH-1:0] build_tdata(int unsigned index);
     logic [DATA_WIDTH-1:0] value;

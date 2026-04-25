@@ -5,10 +5,16 @@ class I2STxVIP #(
 
   virtual i2s_if.transmitter vif;
   string vip_name;
+  int unsigned timeout_cycles;
 
   function new(virtual i2s_if.transmitter vif, string vip_name = "i2s_tx_vip");
     this.vif = vif;
     this.vip_name = vip_name;
+    timeout_cycles = 10000;
+  endfunction
+
+  function void configure_timeout(int unsigned cycles);
+    timeout_cycles = cycles;
   endfunction
 
   task automatic idle();
@@ -33,7 +39,16 @@ class I2STxVIP #(
   // WS=0 is left, WS=1 is right. Each channel has one lead bit before the MSB.
   task automatic transmit(input logic [SAMPLE_WIDTH-1:0] left_sample,
                           input logic [SAMPLE_WIDTH-1:0] right_sample);
-    while (!vif.rstn) @(posedge vif.clk);
+    int unsigned cycles;
+
+    cycles = 0;
+    while (!vif.rstn) begin
+      @(posedge vif.clk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for I2S reset release", vip_name);
+      end
+    end
     @(posedge vif.clk);
 
     vif.ws = 1'b0;

@@ -1,6 +1,7 @@
 `timescale 1ns/1ps
 
 `include "vunit_defines.svh"
+`include "i2c_if.sv"
 `include "i2c_master_vip.sv"
 `include "i2c_slave_vip.sv"
 
@@ -78,6 +79,28 @@ module i2c_vip_tb;
     #(INTER_TRANSACTION_PAUSE);
   endtask
 
+  task automatic run_wrong_address_write();
+    logic [7:0] master_data;
+    logic [7:0] slave_data;
+    bit address_ack;
+    bit data_ack;
+    bit address_match;
+
+    master_data = 8'hA5;
+
+    fork
+      master_vip.write_byte(SLAVE_ADDRESS ^ 7'h01, master_data, address_ack, data_ack);
+      slave_vip.expect_write(slave_data, address_match);
+    join
+
+    assert(!address_ack) else $error("I2C wrong-address write unexpectedly ACKed address");
+    assert(!data_ack) else $error("I2C wrong-address write unexpectedly ACKed data");
+    assert(!address_match) else $error("I2C slave reported match for wrong address");
+
+    #(INTER_TRANSACTION_PAUSE);
+  endtask
+
+
   task automatic drive_reads(input int unsigned start_index,
                              input int unsigned transfer_count);
     logic [7:0] master_data;
@@ -141,6 +164,8 @@ module i2c_vip_tb;
       run_write(stimulus_idx);
       run_read(stimulus_idx);
     end
+
+    run_wrong_address_write();
 
     fork
       drive_reads(0, CONTINUOUS_TRANSFER_COUNT);

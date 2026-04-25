@@ -12,6 +12,7 @@ class Axi4StreamMasterVIP #(
   bit enable_pause_generator;
   int unsigned min_pause_cycles;
   int unsigned max_pause_cycles;
+  int unsigned timeout_cycles;
 
   // constructor
   function new(
@@ -22,6 +23,7 @@ class Axi4StreamMasterVIP #(
     enable_pause_generator = 1'b0;
     min_pause_cycles       = 0;
     max_pause_cycles       = 0;
+    timeout_cycles         = 1000;
   endfunction
 
   function void configure_pause_generator(bit enable, int unsigned min_cycles = 0,
@@ -31,13 +33,29 @@ class Axi4StreamMasterVIP #(
     max_pause_cycles       = (max_cycles < min_cycles) ? min_cycles : max_cycles;
   endfunction
 
+  function void configure_timeout(int unsigned cycles);
+    timeout_cycles = cycles;
+  endfunction
+
+  task automatic wait_reset_release();
+    int unsigned cycles;
+    cycles = 0;
+    while (!vif.aresetn) begin
+      @(posedge vif.aclk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for AXI-Stream reset release", vip_name);
+      end
+    end
+  endtask
+
   // API: transmit
   task transmit(logic [DATA_WIDTH-1:0] tdata, logic [KEEP_WIDTH-1:0] tkeep = '1,
                 logic [KEEP_WIDTH-1:0] tstrb = '1, bit tlast = '1, logic [TID_WIDTH-1:0] tid = '0,
                 logic [TDEST_WIDTH-1:0] tdest = '0, logic [TUSER_WIDTH-1:0] tuser = 0);
     int unsigned pause_cycles;
 
-    while (!vif.aresetn) @(posedge vif.aclk);
+    wait_reset_release();
 
     if (enable_pause_generator) begin
       pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
@@ -56,7 +74,17 @@ class Axi4StreamMasterVIP #(
     // handshake
     vif.tvalid = 1'b1;
     @(posedge vif.aclk);
-    while (!vif.tready) @(posedge vif.aclk);
+    begin
+      int unsigned cycles;
+      cycles = 0;
+      while (!vif.tready) begin
+        @(posedge vif.aclk);
+        cycles++;
+        if (cycles >= timeout_cycles) begin
+          $fatal(1, "%s timed out waiting for TREADY", vip_name);
+        end
+      end
+    end
     $display("[%0t] %s TX tdata=%h tkeep=%h tstrb=%h tlast=%0b tid=%0h tdest=%0h tuser=%0h", $time,
              vip_name, tdata, tkeep, tstrb, tlast, tid, tdest, tuser);
     vif.tvalid = 1'b0;

@@ -1,6 +1,7 @@
 `timescale 1ns/1ps
 
 `include "vunit_defines.svh"
+`include "spi_if.sv"
 `include "spi_master_vip.sv"
 `include "spi_slave_vip.sv"
 

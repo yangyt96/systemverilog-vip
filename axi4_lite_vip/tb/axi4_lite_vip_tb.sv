@@ -1,6 +1,7 @@
 `timescale 1ns/1ps
 
 `include "vunit_defines.svh"
+`include "axi4_lite_if.sv"
 `include "axi4_lite_master_vip.sv"
 `include "axi4_lite_mem_vip.sv"
 

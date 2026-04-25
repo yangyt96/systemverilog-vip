@@ -9,6 +9,7 @@ class Axi4LiteMasterVIP #(
   bit enable_pause_generator;
   int unsigned min_pause_cycles;
   int unsigned max_pause_cycles;
+  int unsigned timeout_cycles;
 
   function new(virtual axi4_lite_if #(ADDR_WIDTH, DATA_WIDTH, STRB_WIDTH).master vif,
                string vip_name = "axi4_lite_master_vip");
@@ -17,6 +18,7 @@ class Axi4LiteMasterVIP #(
     enable_pause_generator = 1'b0;
     min_pause_cycles       = 0;
     max_pause_cycles       = 0;
+    timeout_cycles         = 1000;
   endfunction
 
   function void configure_pause_generator(bit enable, int unsigned min_cycles = 0,
@@ -26,10 +28,22 @@ class Axi4LiteMasterVIP #(
     max_pause_cycles       = (max_cycles < min_cycles) ? min_cycles : max_cycles;
   endfunction
 
+  function void configure_timeout(int unsigned cycles);
+    timeout_cycles = cycles;
+  endfunction
+
   task automatic apply_pause();
     int unsigned pause_cycles;
+    int unsigned cycles;
     begin
-      while (!vif.aresetn) @(posedge vif.aclk);
+      cycles = 0;
+      while (!vif.aresetn) begin
+        @(posedge vif.aclk);
+        cycles++;
+        if (cycles >= timeout_cycles) begin
+          $fatal(1, "%s timed out waiting for AXI4-Lite reset release", vip_name);
+        end
+      end
       if (enable_pause_generator) begin
         pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
         repeat (pause_cycles) @(posedge vif.aclk);
@@ -42,6 +56,7 @@ class Axi4LiteMasterVIP #(
              input logic [2:0] prot = 3'b000);
     bit aw_done;
     bit w_done;
+    int unsigned cycles;
 
     apply_pause();
 
@@ -55,9 +70,14 @@ class Axi4LiteMasterVIP #(
 
     aw_done = 1'b0;
     w_done = 1'b0;
+    cycles = 0;
 
     while (!(aw_done && w_done)) begin
       @(posedge vif.aclk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for AXI4-Lite write address/data handshake", vip_name);
+      end
 
       if (!aw_done && vif.awvalid && vif.awready) begin
         aw_done     = 1'b1;
@@ -70,8 +90,13 @@ class Axi4LiteMasterVIP #(
       end
     end
 
+    cycles = 0;
     do begin
       @(posedge vif.aclk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for AXI4-Lite write response", vip_name);
+      end
     end while (!(vif.bvalid && vif.bready));
 
     resp = vif.bresp;
@@ -82,6 +107,8 @@ class Axi4LiteMasterVIP #(
 
   task read(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
             output logic [1:0] resp, input logic [2:0] prot = 3'b000);
+    int unsigned cycles;
+
     apply_pause();
 
     vif.araddr  = addr;
@@ -89,8 +116,13 @@ class Axi4LiteMasterVIP #(
     vif.arvalid = 1'b1;
     vif.rready  = 1'b1;
 
+    cycles = 0;
     do begin
       @(posedge vif.aclk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for AXI4-Lite read response", vip_name);
+      end
       if (vif.arvalid && vif.arready) begin
         vif.arvalid = 1'b0;
       end
