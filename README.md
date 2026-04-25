@@ -13,9 +13,11 @@ protocol README under `doc/`.
 | `axi4_lite_vip` | AXI4-Lite master plus memory slave VIP |
 | `axi4_full_vip` | AXI4-Full master plus burst-capable memory slave VIP |
 | `axi4_stream_vip` | AXI4-Stream master/slave VIP with a small pipeline DUT |
+| `apb_vip` | Direct APB master/slave VIP, no DUT |
 | `uart_vip` | Direct UART TX/RX VIP, no DUT |
 | `spi_vip` | Direct SPI master/slave VIP, no DUT |
 | `i2c_vip` | Direct I2C master/slave VIP with open-drain bus model, no DUT |
+| `i2s_vip` | Direct I2S stereo TX/RX VIP, no DUT |
 
 ## Docker Environment
 Build from here
