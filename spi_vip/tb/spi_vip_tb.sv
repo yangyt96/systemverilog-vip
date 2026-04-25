@@ -103,27 +103,43 @@ module spi_vip_tb;
   `TEST_SUITE begin
     int unsigned stimulus_idx;
     int unsigned observed_count;
+    bit test_cpol;
+    bit test_cpha;
 
     master_vip = new(spi_link.master, "master_vip");
     slave_vip  = new(spi_link.slave, "slave_vip");
-    master_vip.idle();
-    slave_vip.idle();
 
     @(posedge rstn);
     @(posedge clk);
 
-    for (stimulus_idx = 0; stimulus_idx < STIMULUS_COUNT; stimulus_idx++) begin
-      run_transfer(stimulus_idx);
+    // Test all 4 SPI modes
+    for (int mode_idx = 0; mode_idx < 4; mode_idx++) begin
+      test_cpol = bit'(mode_idx[1]);
+      test_cpha = bit'(mode_idx[0]);
+
+      master_vip.configure_mode(test_cpol, test_cpha);
+      slave_vip.configure_mode(test_cpol, test_cpha);
+      master_vip.idle();
+      slave_vip.idle();
+
+      // Set initial sclk to match CPOL idle state
+      spi_link.sclk = test_cpol;
+
+      $display("=== SPI Mode %0d (CPOL=%0b, CPHA=%0b) ===", mode_idx, test_cpol, test_cpha);
+
+      for (stimulus_idx = 0; stimulus_idx < STIMULUS_COUNT; stimulus_idx++) begin
+        run_transfer(stimulus_idx);
+      end
+
+      fork
+        drive_master(0, CONTINUOUS_TRANSFER_COUNT);
+        monitor_slave(0, CONTINUOUS_TRANSFER_COUNT, observed_count);
+      join
+
+      assert(observed_count == CONTINUOUS_TRANSFER_COUNT)
+        else $error("SPI continuous count mismatch in mode %0d exp=%0d got=%0d",
+                    mode_idx, CONTINUOUS_TRANSFER_COUNT, observed_count);
     end
-
-    fork
-      drive_master(0, CONTINUOUS_TRANSFER_COUNT);
-      monitor_slave(0, CONTINUOUS_TRANSFER_COUNT, observed_count);
-    join
-
-    assert(observed_count == CONTINUOUS_TRANSFER_COUNT)
-      else $error("SPI continuous count mismatch exp=%0d got=%0d",
-                  CONTINUOUS_TRANSFER_COUNT, observed_count);
   end
 
 endmodule
