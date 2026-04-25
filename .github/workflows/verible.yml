@@ -1,0 +1,35 @@
+name: Verible Check Linter
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  verible:
+    runs-on: ubuntu-latest
+
+    # Use prebuilt container
+    container:
+      image: ghcr.io/yangyt96/verible:latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Run Verible Linter
+        # continue-on-error: true
+        run: |
+          verible-verilog-lint \
+          --rules_config_search \
+            $(find ./ip ./src -type f \( -name "*.sv" -o -name "*.svh" \) \
+              )
+      - name: Check Formatting
+        # continue-on-error: true
+        run: |
+          verible-verilog-format \
+          --verify --inplace \
+            $(find ./ip ./src -type f \( -name "*.sv" -o -name "*.svh" \) \
+              )
