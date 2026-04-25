@@ -1,13 +1,12 @@
 class SpiMasterVIP #(
-  int DATA_BITS       = 8,
-  int HALF_SCLK_CYCLES = 4
+    int DATA_BITS        = 8,
+    int HALF_SCLK_CYCLES = 4
 );
 
   virtual spi_if.master vif;
   string vip_name;
 
-  function new(virtual spi_if.master vif,
-               string vip_name = "spi_master_vip");
+  function new(virtual spi_if.master vif, string vip_name = "spi_master_vip");
     this.vif = vif;
     this.vip_name = vip_name;
   endfunction
@@ -23,8 +22,7 @@ class SpiMasterVIP #(
   endtask
 
   // API: full-duplex SPI mode 0 transfer, MSB first.
-  task transfer(input  logic [DATA_BITS-1:0] tx_data,
-                output logic [DATA_BITS-1:0] rx_data);
+  task transfer(input logic [DATA_BITS-1:0] tx_data, output logic [DATA_BITS-1:0] rx_data);
     rx_data = '0;
 
     while (!vif.rstn) @(posedge vif.clk);

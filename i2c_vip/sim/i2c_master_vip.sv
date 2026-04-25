@@ -1,12 +1,11 @@
 class I2CMasterVIP #(
-  int HALF_SCL_CYCLES = 25
+    int HALF_SCL_CYCLES = 25
 );
 
   virtual i2c_if.master vif;
   string vip_name;
 
-  function new(virtual i2c_if.master vif,
-               string vip_name = "i2c_master_vip");
+  function new(virtual i2c_if.master vif, string vip_name = "i2c_master_vip");
     this.vif = vif;
     this.vip_name = vip_name;
   endfunction
@@ -67,8 +66,7 @@ class I2CMasterVIP #(
     wait_half_scl();
   endtask
 
-  task automatic write_raw_byte(input logic [7:0] data,
-                                output bit ack);
+  task automatic write_raw_byte(input logic [7:0] data, output bit ack);
     bit ack_bit;
 
     for (int bit_idx = 7; bit_idx >= 0; bit_idx--) begin
@@ -79,8 +77,7 @@ class I2CMasterVIP #(
     ack = !ack_bit;
   endtask
 
-  task automatic read_raw_byte(output logic [7:0] data,
-                               input bit ack);
+  task automatic read_raw_byte(output logic [7:0] data, input bit ack);
     bit bit_value;
 
     data = '0;
@@ -92,10 +89,8 @@ class I2CMasterVIP #(
     write_bit(!ack);
   endtask
 
-  task automatic write_byte(input  logic [6:0] address,
-                            input  logic [7:0] data,
-                            output bit address_ack,
-                            output bit data_ack);
+  task automatic write_byte(input logic [6:0] address, input logic [7:0] data,
+                            output bit address_ack, output bit data_ack);
     while (!vif.rstn) @(posedge vif.clk);
     @(posedge vif.clk);
 
@@ -104,12 +99,11 @@ class I2CMasterVIP #(
     write_raw_byte(data, data_ack);
     stop_condition();
 
-    $display("[%0t] %s WRITE addr=%h data=%h address_ack=%0b data_ack=%0b",
-             $time, vip_name, address, data, address_ack, data_ack);
+    $display("[%0t] %s WRITE addr=%h data=%h address_ack=%0b data_ack=%0b", $time, vip_name,
+             address, data, address_ack, data_ack);
   endtask
 
-  task automatic read_byte(input  logic [6:0] address,
-                           output logic [7:0] data,
+  task automatic read_byte(input logic [6:0] address, output logic [7:0] data,
                            output bit address_ack);
     while (!vif.rstn) @(posedge vif.clk);
     @(posedge vif.clk);
@@ -119,8 +113,8 @@ class I2CMasterVIP #(
     read_raw_byte(data, 1'b0);
     stop_condition();
 
-    $display("[%0t] %s READ  addr=%h data=%h address_ack=%0b",
-             $time, vip_name, address, data, address_ack);
+    $display("[%0t] %s READ  addr=%h data=%h address_ack=%0b", $time, vip_name, address, data,
+             address_ack);
   endtask
 
 endclass

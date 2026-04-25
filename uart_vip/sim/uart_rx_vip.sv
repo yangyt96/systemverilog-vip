@@ -1,13 +1,12 @@
 class UartRxVIP #(
-  int CLKS_PER_BIT = 16,
-  int DATA_BITS    = 8
+    int CLKS_PER_BIT = 16,
+    int DATA_BITS    = 8
 );
 
   virtual uart_if.receiver vif;
   string vip_name;
 
-  function new(virtual uart_if.receiver vif,
-               string vip_name = "uart_rx_vip");
+  function new(virtual uart_if.receiver vif, string vip_name = "uart_rx_vip");
     this.vif = vif;
     this.vip_name = vip_name;
   endfunction
@@ -17,8 +16,7 @@ class UartRxVIP #(
   endtask
 
   // API: receive one UART frame, 8N1 by default, LSB first.
-  task receive(output logic [DATA_BITS-1:0] data,
-               output bit framing_error);
+  task receive(output logic [DATA_BITS-1:0] data, output bit framing_error);
     data = '0;
     framing_error = 1'b0;
 
@@ -42,8 +40,7 @@ class UartRxVIP #(
       framing_error = 1'b1;
     end
 
-    $display("[%0t] %s RX data=%h framing_error=%0b",
-             $time, vip_name, data, framing_error);
+    $display("[%0t] %s RX data=%h framing_error=%0b", $time, vip_name, data, framing_error);
   endtask
 
 endclass

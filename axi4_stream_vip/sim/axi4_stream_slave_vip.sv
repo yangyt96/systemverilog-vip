@@ -1,9 +1,9 @@
 class Axi4StreamSlaveVIP #(
-  int DATA_WIDTH = 32,
-  int KEEP_WIDTH = DATA_WIDTH / 8,
-  int TID_WIDTH = 8,
-  int TDEST_WIDTH = 8,
-  int TUSER_WIDTH = 32
+    int DATA_WIDTH  = 32,
+    int KEEP_WIDTH  = DATA_WIDTH / 8,
+    int TID_WIDTH   = 8,
+    int TDEST_WIDTH = 8,
+    int TUSER_WIDTH = 32
 );
 
   // handle to the interface
@@ -14,8 +14,9 @@ class Axi4StreamSlaveVIP #(
   int unsigned max_stall_cycles;
 
   // constructor
-  function new(virtual axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH).slave vif,
-               string vip_name = "axi4_stream_slave_vip");
+  function new(
+      virtual axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH).slave vif,
+      string vip_name = "axi4_stream_slave_vip");
     this.vif = vif;
     this.vip_name = vip_name;
     enable_backpressure = 1'b0;
@@ -23,8 +24,7 @@ class Axi4StreamSlaveVIP #(
     max_stall_cycles    = 0;
   endfunction
 
-  function void configure_backpressure(bit enable,
-                                       int unsigned min_cycles = 0,
+  function void configure_backpressure(bit enable, int unsigned min_cycles = 0,
                                        int unsigned max_cycles = 0);
     enable_backpressure = enable;
     min_stall_cycles    = min_cycles;
@@ -32,13 +32,10 @@ class Axi4StreamSlaveVIP #(
   endfunction
 
   // API: receive
-  task receive(output logic [DATA_WIDTH-1:0] tdata,
-                      output logic [KEEP_WIDTH-1:0] tkeep,
-                      output logic [KEEP_WIDTH-1:0] tstrb,
-                      output bit                    tlast,
-                      output logic [TID_WIDTH-1:0]  tid,
-                      output logic [TDEST_WIDTH-1:0] tdest,
-                      output logic [TUSER_WIDTH-1:0] tuser);
+  task receive(output logic [DATA_WIDTH-1:0] tdata, output logic [KEEP_WIDTH-1:0] tkeep,
+               output logic [KEEP_WIDTH-1:0] tstrb, output bit tlast,
+               output logic [TID_WIDTH-1:0] tid, output logic [TDEST_WIDTH-1:0] tdest,
+               output logic [TUSER_WIDTH-1:0] tuser);
     int unsigned stall_cycles;
 
     while (!vif.aresetn) @(posedge vif.aclk);
@@ -65,8 +62,8 @@ class Axi4StreamSlaveVIP #(
     tid   = vif.tid;
     tdest = vif.tdest;
     tuser = vif.tuser;
-    $display("[%0t] %s RX tdata=%h tkeep=%h tstrb=%h tlast=%0b tid=%0h tdest=%0h tuser=%0h",
-             $time, vip_name, tdata, tkeep, tstrb, tlast, tid, tdest, tuser);
+    $display("[%0t] %s RX tdata=%h tkeep=%h tstrb=%h tlast=%0b tid=%0h tdest=%0h tuser=%0h", $time,
+             vip_name, tdata, tkeep, tstrb, tlast, tid, tdest, tuser);
 
     // handshake complete
     vif.tready = 1'b0;

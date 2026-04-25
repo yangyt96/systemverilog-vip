@@ -4,8 +4,7 @@ class I2CSlaveVIP;
   string vip_name;
   logic [6:0] address;
 
-  function new(virtual i2c_if.slave vif,
-               logic [6:0] address = 7'h52,
+  function new(virtual i2c_if.slave vif, logic [6:0] address = 7'h52,
                string vip_name = "i2c_slave_vip");
     this.vif = vif;
     this.address = address;
@@ -54,7 +53,7 @@ class I2CSlaveVIP;
       @(posedge vif.scl);
       if (bit_idx > 0) begin
         @(negedge vif.scl);
-        vif.slave_sda_low = !data[bit_idx - 1];
+        vif.slave_sda_low = !data[bit_idx-1];
       end
     end
 
@@ -68,8 +67,7 @@ class I2CSlaveVIP;
     @(negedge vif.scl);
   endtask
 
-  task automatic expect_write(output logic [7:0] data,
-                              output bit address_match);
+  task automatic expect_write(output logic [7:0] data, output bit address_match);
     logic [7:0] address_byte;
     logic [6:0] rx_address;
     bit rw_bit;
@@ -85,12 +83,11 @@ class I2CSlaveVIP;
     send_ack(address_match);
     wait_stop();
 
-    $display("[%0t] %s WRITE addr=%h data=%h address_match=%0b",
-             $time, vip_name, rx_address, data, address_match);
+    $display("[%0t] %s WRITE addr=%h data=%h address_match=%0b", $time, vip_name, rx_address, data,
+             address_match);
   endtask
 
-  task automatic respond_read(input logic [7:0] data,
-                              output bit address_match,
+  task automatic respond_read(input logic [7:0] data, output bit address_match,
                               output bit master_ack);
     logic [7:0] address_byte;
     logic [6:0] rx_address;
@@ -107,8 +104,8 @@ class I2CSlaveVIP;
     receive_ack(master_ack);
     wait_stop();
 
-    $display("[%0t] %s READ  addr=%h data=%h address_match=%0b master_ack=%0b",
-             $time, vip_name, rx_address, data, address_match, master_ack);
+    $display("[%0t] %s READ  addr=%h data=%h address_match=%0b master_ack=%0b", $time, vip_name,
+             rx_address, data, address_match, master_ack);
   endtask
 
 endclass

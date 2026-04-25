@@ -1,13 +1,12 @@
 class UartTxVIP #(
-  int CLKS_PER_BIT = 16,
-  int DATA_BITS    = 8
+    int CLKS_PER_BIT = 16,
+    int DATA_BITS    = 8
 );
 
   virtual uart_if.transmitter vif;
   string vip_name;
 
-  function new(virtual uart_if.transmitter vif,
-               string vip_name = "uart_tx_vip");
+  function new(virtual uart_if.transmitter vif, string vip_name = "uart_tx_vip");
     this.vif = vif;
     this.vip_name = vip_name;
   endfunction

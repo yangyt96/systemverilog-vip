@@ -3,32 +3,43 @@
 // IDs, and optional pause/backpressure generation
 
 class Axi4FullMasterVIP #(
-  int ADDR_WIDTH   = 32,
-  int DATA_WIDTH   = 32,
-  int ID_WIDTH     = 4,
-  int LEN_WIDTH    = 8,
-  int SIZE_WIDTH   = 3,
-  int BURST_WIDTH  = 2,
-  int LOCK_WIDTH   = 1,
-  int CACHE_WIDTH  = 4,
-  int PROT_WIDTH   = 3,
-  int QOS_WIDTH    = 4,
-  int REGION_WIDTH = 4,
-  int STRB_WIDTH   = DATA_WIDTH / 8,
-  int AWUSER_WIDTH = 1,
-  int WUSER_WIDTH  = 1,
-  int BUSER_WIDTH  = 1,
-  int ARUSER_WIDTH = 1,
-  int RUSER_WIDTH  = 1
+    int ADDR_WIDTH   = 32,
+    int DATA_WIDTH   = 32,
+    int ID_WIDTH     = 4,
+    int LEN_WIDTH    = 8,
+    int SIZE_WIDTH   = 3,
+    int BURST_WIDTH  = 2,
+    int LOCK_WIDTH   = 1,
+    int CACHE_WIDTH  = 4,
+    int PROT_WIDTH   = 3,
+    int QOS_WIDTH    = 4,
+    int REGION_WIDTH = 4,
+    int STRB_WIDTH   = DATA_WIDTH / 8,
+    int AWUSER_WIDTH = 1,
+    int WUSER_WIDTH  = 1,
+    int BUSER_WIDTH  = 1,
+    int ARUSER_WIDTH = 1,
+    int RUSER_WIDTH  = 1
 );
 
   virtual axi4_full_if #(
-    .ADDR_WIDTH(ADDR_WIDTH), .DATA_WIDTH(DATA_WIDTH), .ID_WIDTH(ID_WIDTH),
-    .LEN_WIDTH(LEN_WIDTH), .SIZE_WIDTH(SIZE_WIDTH), .BURST_WIDTH(BURST_WIDTH),
-    .LOCK_WIDTH(LOCK_WIDTH), .CACHE_WIDTH(CACHE_WIDTH), .PROT_WIDTH(PROT_WIDTH),
-    .QOS_WIDTH(QOS_WIDTH), .REGION_WIDTH(REGION_WIDTH), .STRB_WIDTH(STRB_WIDTH),
-    .AWUSER_WIDTH(AWUSER_WIDTH), .WUSER_WIDTH(WUSER_WIDTH), .BUSER_WIDTH(BUSER_WIDTH),
-    .ARUSER_WIDTH(ARUSER_WIDTH), .RUSER_WIDTH(RUSER_WIDTH)
+      .ADDR_WIDTH(ADDR_WIDTH),
+      .DATA_WIDTH(DATA_WIDTH),
+      .ID_WIDTH(ID_WIDTH),
+      .LEN_WIDTH(LEN_WIDTH),
+      .SIZE_WIDTH(SIZE_WIDTH),
+      .BURST_WIDTH(BURST_WIDTH),
+      .LOCK_WIDTH(LOCK_WIDTH),
+      .CACHE_WIDTH(CACHE_WIDTH),
+      .PROT_WIDTH(PROT_WIDTH),
+      .QOS_WIDTH(QOS_WIDTH),
+      .REGION_WIDTH(REGION_WIDTH),
+      .STRB_WIDTH(STRB_WIDTH),
+      .AWUSER_WIDTH(AWUSER_WIDTH),
+      .WUSER_WIDTH(WUSER_WIDTH),
+      .BUSER_WIDTH(BUSER_WIDTH),
+      .ARUSER_WIDTH(ARUSER_WIDTH),
+      .RUSER_WIDTH(RUSER_WIDTH)
   ).master vif;
 
   string vip_name;
@@ -37,16 +48,26 @@ class Axi4FullMasterVIP #(
   int unsigned max_pause_cycles;
 
   function new(
-    virtual axi4_full_if #(
-      .ADDR_WIDTH(ADDR_WIDTH), .DATA_WIDTH(DATA_WIDTH), .ID_WIDTH(ID_WIDTH),
-      .LEN_WIDTH(LEN_WIDTH), .SIZE_WIDTH(SIZE_WIDTH), .BURST_WIDTH(BURST_WIDTH),
-      .LOCK_WIDTH(LOCK_WIDTH), .CACHE_WIDTH(CACHE_WIDTH), .PROT_WIDTH(PROT_WIDTH),
-      .QOS_WIDTH(QOS_WIDTH), .REGION_WIDTH(REGION_WIDTH), .STRB_WIDTH(STRB_WIDTH),
-      .AWUSER_WIDTH(AWUSER_WIDTH), .WUSER_WIDTH(WUSER_WIDTH), .BUSER_WIDTH(BUSER_WIDTH),
-      .ARUSER_WIDTH(ARUSER_WIDTH), .RUSER_WIDTH(RUSER_WIDTH)
-    ).master vif,
-    string vip_name = "axi4_full_master_vip"
-  );
+      virtual axi4_full_if #(
+          .ADDR_WIDTH(ADDR_WIDTH),
+          .DATA_WIDTH(DATA_WIDTH),
+          .ID_WIDTH(ID_WIDTH),
+          .LEN_WIDTH(LEN_WIDTH),
+          .SIZE_WIDTH(SIZE_WIDTH),
+          .BURST_WIDTH(BURST_WIDTH),
+          .LOCK_WIDTH(LOCK_WIDTH),
+          .CACHE_WIDTH(CACHE_WIDTH),
+          .PROT_WIDTH(PROT_WIDTH),
+          .QOS_WIDTH(QOS_WIDTH),
+          .REGION_WIDTH(REGION_WIDTH),
+          .STRB_WIDTH(STRB_WIDTH),
+          .AWUSER_WIDTH(AWUSER_WIDTH),
+          .WUSER_WIDTH(WUSER_WIDTH),
+          .BUSER_WIDTH(BUSER_WIDTH),
+          .ARUSER_WIDTH(ARUSER_WIDTH),
+          .RUSER_WIDTH(RUSER_WIDTH)
+      ).master vif,
+      string vip_name = "axi4_full_master_vip");
     this.vif = vif;
     this.vip_name = vip_name;
     enable_pause_generator = 1'b0;
@@ -54,11 +75,8 @@ class Axi4FullMasterVIP #(
     max_pause_cycles = 0;
   endfunction
 
-  function void configure_pause_generator(
-    bit enable,
-    int unsigned min_cycles = 0,
-    int unsigned max_cycles = 0
-  );
+  function void configure_pause_generator(bit enable, int unsigned min_cycles = 0,
+                                          int unsigned max_cycles = 0);
     enable_pause_generator = enable;
     min_pause_cycles = min_cycles;
     max_pause_cycles = (max_cycles < min_cycles) ? min_cycles : max_cycles;
@@ -110,19 +128,14 @@ class Axi4FullMasterVIP #(
   endtask
 
   // Write transaction: address, data, and response
-  task write(
-    input  logic [ADDR_WIDTH-1:0]   addr,
-    input  logic [DATA_WIDTH-1:0]   data,
-    input  logic [STRB_WIDTH-1:0]   strb = '1,
-    input  logic [ID_WIDTH-1:0]     id = '0,
-    input  logic [LEN_WIDTH-1:0]    len = '0,      // Single beat
-    input  logic [SIZE_WIDTH-1:0]   size = $clog2(STRB_WIDTH),
-    input  logic [BURST_WIDTH-1:0]  burst = 2'b01, // INCR
-    input  logic [PROT_WIDTH-1:0]   prot = 3'b000,
-    output logic [1:0]              resp
-  );
-    logic [DATA_WIDTH-1:0] burst_data [1];
-    logic [STRB_WIDTH-1:0] burst_strb [1];
+  task write(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
+             input logic [STRB_WIDTH-1:0] strb = '1, input logic [ID_WIDTH-1:0] id = '0,
+             input logic [LEN_WIDTH-1:0] len = '0,  // Single beat
+             input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
+             input logic [BURST_WIDTH-1:0] burst = 2'b01,  // INCR
+             input logic [PROT_WIDTH-1:0] prot = 3'b000, output logic [1:0] resp);
+    logic [DATA_WIDTH-1:0] burst_data[1];
+    logic [STRB_WIDTH-1:0] burst_strb[1];
     begin
       burst_data[0] = data;
       burst_strb[0] = strb;
@@ -130,49 +143,46 @@ class Axi4FullMasterVIP #(
     end
   endtask
 
-  task write_burst(
-    input  logic [ADDR_WIDTH-1:0]   addr,
-    input  logic [DATA_WIDTH-1:0]   data[],
-    input  logic [STRB_WIDTH-1:0]   strb[],
-    input  logic [ID_WIDTH-1:0]     id = '0,
-    input  logic [SIZE_WIDTH-1:0]   size = $clog2(STRB_WIDTH),
-    input  logic [BURST_WIDTH-1:0]  burst = 2'b01,
-    input  logic [PROT_WIDTH-1:0]   prot = 3'b000,
-    output logic [1:0]              resp
-  );
+  task write_burst(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data[],
+                   input logic [STRB_WIDTH-1:0] strb[], input logic [ID_WIDTH-1:0] id = '0,
+                   input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
+                   input logic [BURST_WIDTH-1:0] burst = 2'b01,
+                   input logic [PROT_WIDTH-1:0] prot = 3'b000, output logic [1:0] resp);
     bit aw_done;
     int unsigned beat_count;
     int unsigned beat_idx;
 
     beat_count = data.size();
-    assert(beat_count > 0) else $fatal(1, "%s write_burst called with no data beats", vip_name);
-    assert(strb.size() >= beat_count) else $fatal(1, "%s write_burst strb array too short", vip_name);
+    assert (beat_count > 0)
+    else $fatal(1, "%s write_burst called with no data beats", vip_name);
+    assert (strb.size() >= beat_count)
+    else $fatal(1, "%s write_burst strb array too short", vip_name);
 
     apply_pause();
 
-    vif.awid      = id;
-    vif.awaddr    = addr;
-    vif.awlen     = LEN_WIDTH'(beat_count - 1);
-    vif.awsize    = size;
-    vif.awburst   = burst;
-    vif.awprot    = prot;
-    vif.awcache   = 4'b0000;
-    vif.awlock    = 1'b0;
-    vif.awqos     = 4'b0000;
-    vif.awregion  = 4'b0000;
-    vif.awuser    = '0;
-    vif.awvalid   = 1'b1;
+    vif.awid     = id;
+    vif.awaddr   = addr;
+    vif.awlen    = LEN_WIDTH'(beat_count - 1);
+    vif.awsize   = size;
+    vif.awburst  = burst;
+    vif.awprot   = prot;
+    vif.awcache  = 4'b0000;
+    vif.awlock   = 1'b0;
+    vif.awqos    = 4'b0000;
+    vif.awregion = 4'b0000;
+    vif.awuser   = '0;
+    vif.awvalid  = 1'b1;
 
-    vif.wdata     = data[0];
-    vif.wstrb     = strb[0];
-    vif.wlast     = (beat_count == 1);
-    vif.wuser     = '0;
-    vif.wvalid    = 1'b1;
+    vif.wdata    = data[0];
+    vif.wstrb    = strb[0];
+    vif.wlast    = (beat_count == 1);
+    vif.wuser    = '0;
+    vif.wvalid   = 1'b1;
 
-    vif.bready    = 1'b1;
+    vif.bready   = 1'b1;
 
-    aw_done = 1'b0;
-    beat_idx = 0;
+    aw_done      = 1'b0;
+    beat_idx     = 0;
 
     while (beat_idx < beat_count) begin
       @(posedge vif.aclk);
@@ -198,24 +208,20 @@ class Axi4FullMasterVIP #(
     end while (!(vif.bvalid && vif.bready));
 
     resp = vif.bresp;
-    $display("[%0t] %s TX WRITE_BURST addr=%h beats=%0d id=%0d burst=%0d bresp=%0h",
-             $time, vip_name, addr, beat_count, id, burst, resp);
+    $display("[%0t] %s TX WRITE_BURST addr=%h beats=%0d id=%0d burst=%0d bresp=%0h", $time,
+             vip_name, addr, beat_count, id, burst, resp);
     vif.bready = 1'b0;
   endtask
 
   // Read transaction
-  task read(
-    input  logic [ADDR_WIDTH-1:0]   addr,
-    output logic [DATA_WIDTH-1:0]   data,
-    output logic [1:0]              resp,
-    input  logic [ID_WIDTH-1:0]     id = '0,
-    input  logic [LEN_WIDTH-1:0]    len = '0,      // Single beat
-    input  logic [SIZE_WIDTH-1:0]   size = $clog2(STRB_WIDTH),
-    input  logic [BURST_WIDTH-1:0]  burst = 2'b01, // INCR
-    input  logic [PROT_WIDTH-1:0]   prot = 3'b000
-  );
-    logic [DATA_WIDTH-1:0] burst_data [];
-    logic [1:0] burst_resp [];
+  task read(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
+            output logic [1:0] resp, input logic [ID_WIDTH-1:0] id = '0,
+            input logic [LEN_WIDTH-1:0] len = '0,  // Single beat
+            input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
+            input logic [BURST_WIDTH-1:0] burst = 2'b01,  // INCR
+            input logic [PROT_WIDTH-1:0] prot = 3'b000);
+    logic [DATA_WIDTH-1:0] burst_data[];
+    logic [1:0] burst_resp[];
     begin
       burst_data = new[1];
       burst_resp = new[1];
@@ -226,35 +232,31 @@ class Axi4FullMasterVIP #(
   endtask
 
   task read_burst(
-    input  logic [ADDR_WIDTH-1:0]   addr,
-    input  int unsigned             beat_count,
-    ref    logic [DATA_WIDTH-1:0]   data[],
-    ref    logic [1:0]              resp[],
-    input  logic [ID_WIDTH-1:0]     id = '0,
-    input  logic [SIZE_WIDTH-1:0]   size = $clog2(STRB_WIDTH),
-    input  logic [BURST_WIDTH-1:0]  burst = 2'b01,
-    input  logic [PROT_WIDTH-1:0]   prot = 3'b000
-  );
+      input logic [ADDR_WIDTH-1:0] addr, input int unsigned beat_count,
+      ref logic [DATA_WIDTH-1:0] data[], ref logic [1:0] resp[], input logic [ID_WIDTH-1:0] id = '0,
+      input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
+      input logic [BURST_WIDTH-1:0] burst = 2'b01, input logic [PROT_WIDTH-1:0] prot = 3'b000);
     int unsigned beat_idx;
 
-    assert(beat_count > 0) else $fatal(1, "%s read_burst called with no beats", vip_name);
+    assert (beat_count > 0)
+    else $fatal(1, "%s read_burst called with no beats", vip_name);
 
     apply_pause();
 
-    vif.arid      = id;
-    vif.araddr    = addr;
-    vif.arlen     = LEN_WIDTH'(beat_count - 1);
-    vif.arsize    = size;
-    vif.arburst   = burst;
-    vif.arprot    = prot;
-    vif.arcache   = 4'b0000;
-    vif.arlock    = 1'b0;
-    vif.arqos     = 4'b0000;
-    vif.arregion  = 4'b0000;
-    vif.aruser    = '0;
-    vif.arvalid   = 1'b1;
-    vif.rready    = 1'b1;
-    beat_idx      = 0;
+    vif.arid     = id;
+    vif.araddr   = addr;
+    vif.arlen    = LEN_WIDTH'(beat_count - 1);
+    vif.arsize   = size;
+    vif.arburst  = burst;
+    vif.arprot   = prot;
+    vif.arcache  = 4'b0000;
+    vif.arlock   = 1'b0;
+    vif.arqos    = 4'b0000;
+    vif.arregion = 4'b0000;
+    vif.aruser   = '0;
+    vif.arvalid  = 1'b1;
+    vif.rready   = 1'b1;
+    beat_idx     = 0;
 
     do begin
       @(posedge vif.aclk);
@@ -264,15 +266,16 @@ class Axi4FullMasterVIP #(
       if (vif.rvalid && vif.rready) begin
         data[beat_idx] = vif.rdata;
         resp[beat_idx] = vif.rresp;
-        assert(vif.rid == id) else $error("%s read ID mismatch exp=%0d got=%0d", vip_name, id, vif.rid);
-        assert(vif.rlast == (beat_idx == (beat_count - 1)))
-          else $error("%s rlast mismatch beat=%0d beats=%0d", vip_name, beat_idx, beat_count);
+        assert (vif.rid == id)
+        else $error("%s read ID mismatch exp=%0d got=%0d", vip_name, id, vif.rid);
+        assert (vif.rlast == (beat_idx == (beat_count - 1)))
+        else $error("%s rlast mismatch beat=%0d beats=%0d", vip_name, beat_idx, beat_count);
         beat_idx++;
       end
     end while (beat_idx < beat_count);
 
-    $display("[%0t] %s RX READ_BURST addr=%h beats=%0d id=%0d burst=%0d",
-             $time, vip_name, addr, beat_count, id, burst);
+    $display("[%0t] %s RX READ_BURST addr=%h beats=%0d id=%0d burst=%0d", $time, vip_name, addr,
+             beat_count, id, burst);
     vif.rready = 1'b0;
   endtask
 

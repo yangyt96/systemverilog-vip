@@ -1,13 +1,12 @@
 class I2STxVIP #(
-  int SAMPLE_WIDTH = 16,
-  int HALF_BCLK_CYCLES = 4
+    int SAMPLE_WIDTH = 16,
+    int HALF_BCLK_CYCLES = 4
 );
 
   virtual i2s_if.transmitter vif;
   string vip_name;
 
-  function new(virtual i2s_if.transmitter vif,
-               string vip_name = "i2s_tx_vip");
+  function new(virtual i2s_if.transmitter vif, string vip_name = "i2s_tx_vip");
     this.vif = vif;
     this.vip_name = vip_name;
   endfunction
@@ -33,7 +32,7 @@ class I2STxVIP #(
   // API: transmit one stereo I2S frame, MSB first.
   // WS=0 is left, WS=1 is right. Each channel has one lead bit before the MSB.
   task automatic transmit(input logic [SAMPLE_WIDTH-1:0] left_sample,
-                           input logic [SAMPLE_WIDTH-1:0] right_sample);
+                          input logic [SAMPLE_WIDTH-1:0] right_sample);
     while (!vif.rstn) @(posedge vif.clk);
     @(posedge vif.clk);
 
@@ -52,8 +51,7 @@ class I2STxVIP #(
     vif.ws = 1'b0;
     vif.sd = 1'b0;
 
-    $display("[%0t] %s TX left=%h right=%h",
-             $time, vip_name, left_sample, right_sample);
+    $display("[%0t] %s TX left=%h right=%h", $time, vip_name, left_sample, right_sample);
   endtask
 
 endclass
