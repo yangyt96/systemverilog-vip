@@ -1,69 +1,84 @@
-# Lightweight System Verilog Verification IPs
+# sv-light-vip  
+**Lightweight, class‑based SystemVerilog Verification IPs (UVM‑free)**
 
-This repository contains lightweight, class-based SystemVerilog verification IP
-examples that can be compiled and run with VUnit and ModelSim. The VIPs are
-kept intentionally small: each protocol has a `sim/` directory for reusable
-interfaces/classes, a `tb/` directory for self-checking bring-up tests, and a
-protocol README under `doc/`.
 
-Each `tb/run.py` compiles one top-level testbench. That testbench includes its
-protocol interface, VIP package, and any local DUT/memory model through the
-`sim/` and `tb/` include paths, so compile order stays explicit and consistent
-across all VIPs. Reusable class-based VIP components are grouped in
-`sim/*_vip_pkg.sv`; protocol interfaces and synthesizable-style helper modules
-remain as normal standalone SystemVerilog units.
+## 🚀 Lightweight SystemVerilog Verification IPs  
+**Pure SystemVerilog • Class‑Based • UVM‑Free • VUnit‑Ready • ModelSim‑Friendly**
 
-## VIPs
+This repository provides a collection of **lightweight, class‑based SystemVerilog Verification IPs (VIPs)** designed for engineers who want reusable, protocol‑accurate verification components **without the overhead of UVM**.
 
-| VIP | Summary |
-| --- | --- |
-| `axi4_lite_vip` | AXI4-Lite master plus memory slave VIP |
-| `axi4_full_vip` | AXI4-Full master plus burst-capable memory slave VIP |
-| `axi4_stream_vip` | AXI4-Stream master/slave VIP with a small pipeline DUT |
-| `apb_vip` | Direct APB master/slave VIP, no DUT |
-| `uart_vip` | Direct UART TX/RX VIP, no DUT |
-| `spi_vip` | Direct SPI master/slave VIP, no DUT |
-| `i2c_vip` | Direct I2C master/slave VIP with open-drain bus model, no DUT |
-| `i2s_vip` | Direct I2S stereo TX/RX VIP, no DUT |
+Each VIP is intentionally small, readable, and self‑contained. The structure is consistent across all protocols:
 
-## Docker Environment
-Build from here
-```
-https://github.com/yangyt96/docker-hdl-images/blob/master/modelsim-image/Dockerfile.modelsim
-```
+- `sim/` — reusable interfaces, transaction classes, drivers, monitors, scoreboards  
+- `tb/` — self‑checking bring‑up testbenches with VUnit integration  
+- `doc/` — protocol‑specific notes and diagrams  
 
-## Running Regressions
+Every VIP includes its own `tb/run.py`, keeping compile order explicit and avoiding hidden dependencies.
 
-From the repository root, run a VIP with:
+---
+
+## 🧭 Motivation
+
+Most open‑source verification resources fall into two extremes:
+
+- **Heavy UVM frameworks** that require complex infrastructure and commercial simulators  
+- **Minimal BFMs** that lack structure, reuse, and realistic protocol behavior  
+
+This project fills the gap by providing:
+
+- **Pure SystemVerilog, class‑based VIPs**  
+- **No UVM, no factories, no phases**  
+- **Accurate protocol behavior** for AXI, APB, UART, SPI, I2C, I2S  
+- **VUnit + ModelSim ASE compatibility**  
+- **Readable, hackable, and easy to integrate**  
+
+The goal is to offer a practical, modern, open‑source VIP suite that works for FPGA/ASIC bring‑up, education, and small/medium verification environments.
+
+---
+
+## 📦 Supported VIPs
+
+| VIP | Description |
+|-----|-------------|
+| **axi4_lite_vip** | AXI4‑Lite master + memory slave |
+| **axi4_full_vip** | AXI4‑Full master + burst‑capable memory slave |
+| **axi4_stream_vip** | AXI4‑Stream master/slave with small pipeline DUT |
+| **apb_vip** | APB master/slave |
+| **uart_vip** | UART TX/RX |
+| **spi_vip** | SPI master/slave |
+| **i2c_vip** | I2C master/slave with open‑drain bus model |
+| **i2s_vip** | I2S stereo TX/RX |
+
+All VIPs follow the same structure and coding style for consistency.
+
+---
+
+## 🧪 Running Regressions
+
+From the repository root:
 
 ```bash
 python3 <vip_name>/tb/run.py
 ```
 
-With the provided Docker image:
+## 🐳 Docker Environment
+A ready‑to‑use ModelSim ASE Docker image is available:
 
+```Code
+https://github.com/yangyt96/docker-hdl-images/blob/master/modelsim-image/Dockerfile.modelsim
+```
+
+Run a VIP inside Docker:
 ```bash
 docker run --rm -v "$PWD":/work -w /work/<vip_name>/tb modelsim:20.1 python3 run.py
 ```
-
 Example:
 
 ```bash
 docker run --rm -v "$PWD":/work -w /work/i2c_vip/tb modelsim:20.1 python3 run.py
 ```
 
-Run all VIP regressions by invoking every `tb/run.py` from the repository root:
-
-```bash
-find . -path "*/tb/run.py" -print0 | sort -z | xargs -0 -n1 python3
-```
-
-This is the same pattern used by CI: each protocol testbench is still run by
-its own `tb/run.py`.
-
-## GUI Use
-
-For ModelSim GUI use through Docker:
+## 🖥️ ModelSim GUI (via Docker)
 
 ```bash
 xhost +local:docker
@@ -75,5 +90,21 @@ docker run -it --rm \
   modelsim:20.1
 ```
 
-Most VIPs include a `tb/*_tb.do` waveform setup file and register it through
-the VUnit `modelsim.init_file.gui` option.
+Most VIPs include a tb/*.do waveform setup file, automatically loaded via:
+
+```Code
+modelsim.init_file.gui
+```
+
+## 🧩 Project Philosophy
+Human‑designed, AI‑assisted: AI tools were used to accelerate boilerplate and documentation, but all protocol behavior, architecture, and verification methodology are manually reviewed and engineered.
+
+Lightweight by design: No UVM, no unnecessary abstraction layers.
+
+Readable and educational: Suitable for learning, teaching, and real bring‑up.
+
+Open and extendable: Contributions and extensions are welcome.
+
+## 📜 License
+This project is open‑source and available under the MIT license.
+
