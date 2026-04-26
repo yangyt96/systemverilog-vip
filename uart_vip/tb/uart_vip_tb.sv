@@ -83,7 +83,7 @@ module uart_vip_tb;
   end
 
   initial begin
-    uart_link.tx = 1'b1;
+    uart_link.serial_data = 1'b1;
   end
 
   `TEST_SUITE begin

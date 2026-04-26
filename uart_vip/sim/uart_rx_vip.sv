@@ -43,7 +43,7 @@ class UartRxVIP #(
     begin
       int unsigned cycles;
       cycles = 0;
-      while (vif.tx !== 1'b1) begin
+      while (vif.serial_data !== 1'b1) begin
         @(posedge vif.clk);
         cycles++;
         if (cycles >= timeout_cycles) begin
@@ -52,7 +52,7 @@ class UartRxVIP #(
       end
 
       cycles = 0;
-      while (vif.tx !== 1'b0) begin
+      while (vif.serial_data !== 1'b0) begin
         @(posedge vif.clk);
         cycles++;
         if (cycles >= timeout_cycles) begin
@@ -62,17 +62,17 @@ class UartRxVIP #(
     end
 
     wait_clocks(CLKS_PER_BIT / 2);
-    if (vif.tx !== 1'b0) begin
+    if (vif.serial_data !== 1'b0) begin
       framing_error = 1'b1;
     end
 
     for (int bit_idx = 0; bit_idx < DATA_BITS; bit_idx++) begin
       wait_clocks(CLKS_PER_BIT);
-      data[bit_idx] = vif.tx;
+      data[bit_idx] = vif.serial_data;
     end
 
     wait_clocks(CLKS_PER_BIT);
-    if (vif.tx !== 1'b1) begin
+    if (vif.serial_data !== 1'b1) begin
       framing_error = 1'b1;
     end
 

@@ -18,11 +18,11 @@ class UartTxVIP #(
   endfunction
 
   task automatic idle();
-    vif.tx = 1'b1;
+    vif.serial_data = 1'b1;
   endtask
 
   task automatic drive_bit(input bit bit_value);
-    vif.tx = bit_value;
+    vif.serial_data = bit_value;
     repeat (CLKS_PER_BIT) @(posedge vif.clk);
   endtask
 
