@@ -9,6 +9,9 @@ module spi_vip_tb;
   import vunit_pkg::*;
   import spi_vip_pkg::*;
 
+  localparam bit TEST_CPOL = 0;
+  localparam bit TEST_CPHA = 0;
+
   localparam int DATA_BITS                  = 8;
   localparam int HALF_SCLK_CYCLES           = 4;
   localparam int STIMULUS_COUNT             = 56;
@@ -106,16 +109,15 @@ module spi_vip_tb;
     bit test_cpol;
     bit test_cpha;
 
-    master_vip = new(spi_link.master, "master_vip");
-    slave_vip  = new(spi_link.slave, "slave_vip");
+    `TEST_SUITE_SETUP begin
+      master_vip = new(spi_link.master, "master_vip");
+      slave_vip  = new(spi_link.slave, "slave_vip");
 
-    @(posedge rstn);
-    @(posedge clk);
+      @(posedge rstn);
+      @(posedge clk);
 
-    // Test all 4 SPI modes
-    for (int mode_idx = 0; mode_idx < 4; mode_idx++) begin
-      test_cpol = bit'(mode_idx[1]);
-      test_cpha = bit'(mode_idx[0]);
+      test_cpol = TEST_CPOL;
+      test_cpha = TEST_CPHA;
 
       master_vip.configure_mode(test_cpol, test_cpha);
       slave_vip.configure_mode(test_cpol, test_cpha);
@@ -125,20 +127,25 @@ module spi_vip_tb;
       // Set initial sclk to match CPOL idle state
       spi_link.sclk = test_cpol;
 
-      $display("=== SPI Mode %0d (CPOL=%0b, CPHA=%0b) ===", mode_idx, test_cpol, test_cpha);
+      $display("=== SPI Mode - CPOL=%0b, CPHA=%0b ===", test_cpol, test_cpha);
 
-      for (stimulus_idx = 0; stimulus_idx < STIMULUS_COUNT; stimulus_idx++) begin
-        run_transfer(stimulus_idx);
-      end
+    end
 
+    `TEST_CASE("SingleTransfers") begin
+        for (stimulus_idx = 0; stimulus_idx < STIMULUS_COUNT; stimulus_idx++) begin
+          run_transfer(stimulus_idx);
+        end
+    end
+
+    `TEST_CASE("ContinuousTransfers") begin
       fork
         drive_master(0, CONTINUOUS_TRANSFER_COUNT);
         monitor_slave(0, CONTINUOUS_TRANSFER_COUNT, observed_count);
       join
 
       assert(observed_count == CONTINUOUS_TRANSFER_COUNT)
-        else $error("SPI continuous count mismatch in mode %0d exp=%0d got=%0d",
-                    mode_idx, CONTINUOUS_TRANSFER_COUNT, observed_count);
+        else $error("SPI continuous count mismatch exp=%0d got=%0d",
+                    CONTINUOUS_TRANSFER_COUNT, observed_count);
     end
   end
 

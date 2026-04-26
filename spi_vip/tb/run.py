@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-
+from itertools import product
 from vunit import VUnit
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,5 +25,14 @@ lib.set_sim_option(
     name="modelsim.init_file.gui",
     value=str(ROOT / "tb/spi_vip_tb.do"),
 )
+
+
+tb = lib.test_bench("spi_vip_tb")
+
+for cpol, cpha in product(range(2), range(2)):
+    tb.add_config(
+        name=f"cpol={cpol}cpha={cpha}", generics={"TEST_CPOL": cpol, "TEST_CPHA": cpha}
+    )
+
 
 vu.main()
