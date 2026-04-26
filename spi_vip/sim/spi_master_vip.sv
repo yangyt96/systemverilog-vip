@@ -5,6 +5,9 @@ class SpiMasterVIP #(
 
   virtual spi_if.master vif;
   string vip_name;
+  bit enable_pause_generator;
+  int unsigned min_pause_cycles;
+  int unsigned max_pause_cycles;
   int unsigned timeout_cycles;
   bit cpol;
   bit cpha;
@@ -12,9 +15,19 @@ class SpiMasterVIP #(
   function new(virtual spi_if.master vif, string vip_name = "spi_master_vip");
     this.vif = vif;
     this.vip_name = vip_name;
+    enable_pause_generator = 1'b0;
+    min_pause_cycles = 0;
+    max_pause_cycles = 0;
     timeout_cycles = 10000;
     cpol = 1'b0;
     cpha = 1'b0;
+  endfunction
+
+  function void configure_pause_generator(bit enable, int unsigned min_cycles = 0,
+                                       int unsigned max_cycles = 0);
+    enable_pause_generator = enable;
+    min_pause_cycles = min_cycles;
+    max_pause_cycles = (max_cycles < min_cycles) ? min_cycles : max_cycles;
   endfunction
 
   function void configure_timeout(int unsigned cycles);
@@ -25,6 +38,25 @@ class SpiMasterVIP #(
     this.cpol = cpol;
     this.cpha = cpha;
   endfunction
+
+  task automatic apply_pause();
+    int unsigned pause_cycles;
+    int unsigned cycles;
+    begin
+      cycles = 0;
+      while (!vif.rstn) begin
+        @(posedge vif.clk);
+        cycles++;
+        if (cycles >= timeout_cycles) begin
+          $fatal(1, "%s timed out waiting for SPI reset release", vip_name);
+        end
+      end
+      if (enable_pause_generator) begin
+        pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
+        repeat (pause_cycles) @(posedge vif.clk);
+      end
+    end
+  endtask
 
   task automatic idle();
     vif.sclk = cpol;
@@ -44,6 +76,7 @@ class SpiMasterVIP #(
   //   Mode 3: CPOL=1, CPHA=1 - SCLK idle high, sample on rising  edge
   task automatic transfer(input logic [DATA_BITS-1:0] tx_data, output logic [DATA_BITS-1:0] rx_data);
     int unsigned cycles;
+    int unsigned pause_cycles;
 
     rx_data = '0;
 
@@ -58,6 +91,12 @@ class SpiMasterVIP #(
     @(posedge vif.clk);
 
     vif.cs_n = 1'b0;
+
+    // Optional pause after CS assertion
+    if (enable_pause_generator) begin
+      pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
+      repeat (pause_cycles) @(posedge vif.clk);
+    end
 
     for (int bit_idx = DATA_BITS - 1; bit_idx >= 0; bit_idx--) begin
       if (cpha == 1'b0) begin
@@ -76,6 +115,12 @@ class SpiMasterVIP #(
         vif.sclk = cpol;   // second edge
         wait_half_sclk();
         rx_data[bit_idx] = vif.miso;
+      end
+
+      // Optional pause between bits
+      if (enable_pause_generator && bit_idx > 0) begin
+        pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
+        repeat (pause_cycles) @(posedge vif.clk);
       end
     end
 

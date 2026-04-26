@@ -7,18 +7,50 @@ class ApbMasterVIP #(
 
   virtual apb_if #(ADDR_WIDTH, DATA_WIDTH, STRB_WIDTH, PROT_WIDTH).master vif;
   string vip_name;
+  bit enable_pause_generator;
+  int unsigned min_pause_cycles;
+  int unsigned max_pause_cycles;
   int unsigned timeout_cycles;
 
   function new(virtual apb_if #(ADDR_WIDTH, DATA_WIDTH, STRB_WIDTH, PROT_WIDTH).master vif,
                string vip_name = "apb_master_vip");
     this.vif = vif;
     this.vip_name = vip_name;
+    enable_pause_generator = 1'b0;
+    min_pause_cycles = 0;
+    max_pause_cycles = 0;
     timeout_cycles = 1000;
+  endfunction
+
+  function void configure_pause_generator(bit enable, int unsigned min_cycles = 0,
+                                      int unsigned max_cycles = 0);
+    enable_pause_generator = enable;
+    min_pause_cycles = min_cycles;
+    max_pause_cycles = (max_cycles < min_cycles) ? min_cycles : max_cycles;
   endfunction
 
   function void configure_timeout(int unsigned cycles);
     timeout_cycles = cycles;
   endfunction
+
+  task automatic apply_pause();
+    int unsigned pause_cycles;
+    int unsigned cycles;
+    begin
+      cycles = 0;
+      while (!vif.presetn) begin
+        @(posedge vif.pclk);
+        cycles++;
+        if (cycles >= timeout_cycles) begin
+          $fatal(1, "%s timed out waiting for APB reset release", vip_name);
+        end
+      end
+      if (enable_pause_generator) begin
+        pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
+        repeat (pause_cycles) @(posedge vif.pclk);
+      end
+    end
+  endtask
 
   task automatic wait_reset_release();
     int unsigned cycles;
@@ -57,7 +89,7 @@ class ApbMasterVIP #(
   task automatic write(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
                        input logic [STRB_WIDTH-1:0] strb = '1, output bit slverr,
                        input logic [PROT_WIDTH-1:0] prot = '0);
-    wait_reset_release();
+    apply_pause();
 
     vif.paddr   = addr;
     vif.pwrite  = 1'b1;
@@ -84,7 +116,7 @@ class ApbMasterVIP #(
 
   task automatic read(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
                       output bit slverr, input logic [PROT_WIDTH-1:0] prot = '0);
-    wait_reset_release();
+    apply_pause();
 
     vif.paddr   = addr;
     vif.pwrite  = 1'b0;

@@ -5,12 +5,25 @@ class I2STxVIP #(
 
   virtual i2s_if.transmitter vif;
   string vip_name;
+  bit enable_pause_generator;
+  int unsigned min_pause_cycles;
+  int unsigned max_pause_cycles;
   int unsigned timeout_cycles;
 
   function new(virtual i2s_if.transmitter vif, string vip_name = "i2s_tx_vip");
     this.vif = vif;
     this.vip_name = vip_name;
+    enable_pause_generator = 1'b0;
+    min_pause_cycles = 0;
+    max_pause_cycles = 0;
     timeout_cycles = 10000;
+  endfunction
+
+  function void configure_pause_generator(bit enable, int unsigned min_cycles = 0,
+                                        int unsigned max_cycles = 0);
+    enable_pause_generator = enable;
+    min_pause_cycles = min_cycles;
+    max_pause_cycles = (max_cycles < min_cycles) ? min_cycles : max_cycles;
   endfunction
 
   function void configure_timeout(int unsigned cycles);
@@ -40,6 +53,7 @@ class I2STxVIP #(
   task automatic transmit(input logic [SAMPLE_WIDTH-1:0] left_sample,
                           input logic [SAMPLE_WIDTH-1:0] right_sample);
     int unsigned cycles;
+    int unsigned pause_cycles;
 
     cycles = 0;
     while (!vif.rstn) begin
@@ -55,12 +69,22 @@ class I2STxVIP #(
     drive_bit(1'b0);
     for (int bit_idx = SAMPLE_WIDTH - 1; bit_idx >= 0; bit_idx--) begin
       drive_bit(left_sample[bit_idx]);
+      // Optional pause between bits
+      if (enable_pause_generator && bit_idx > 0) begin
+        pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
+        repeat (pause_cycles) @(posedge vif.clk);
+      end
     end
 
     vif.ws = 1'b1;
     drive_bit(1'b0);
     for (int bit_idx = SAMPLE_WIDTH - 1; bit_idx >= 0; bit_idx--) begin
       drive_bit(right_sample[bit_idx]);
+      // Optional pause between bits
+      if (enable_pause_generator && bit_idx > 0) begin
+        pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
+        repeat (pause_cycles) @(posedge vif.clk);
+      end
     end
 
     vif.ws = 1'b0;
