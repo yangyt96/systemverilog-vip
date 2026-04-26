@@ -49,7 +49,7 @@ class Axi4StreamSlaveVIP #(
     end
   endtask
 
-  // API: receive
+  // API: receive single beat
   task receive(output logic [DATA_WIDTH-1:0] tdata, output logic [KEEP_WIDTH-1:0] tkeep,
                output logic [KEEP_WIDTH-1:0] tstrb, output bit tlast,
                output logic [TID_WIDTH-1:0] tid, output logic [TDEST_WIDTH-1:0] tdest,
@@ -93,6 +93,44 @@ class Axi4StreamSlaveVIP #(
 
     // handshake complete
     vif.tready = 1'b0;
+  endtask
+
+  // API: receive burst - multiple beats until tlast is seen
+  task receive_burst(ref logic [DATA_WIDTH-1:0] tdata[],
+                    ref logic [KEEP_WIDTH-1:0] tkeep[],
+                    ref logic [KEEP_WIDTH-1:0] tstrb[],
+                    ref bit tlast[],
+                    ref logic [TID_WIDTH-1:0] tid[],
+                    ref logic [TDEST_WIDTH-1:0] tdest[],
+                    ref logic [TUSER_WIDTH-1:0] tuser[]);
+    int unsigned beat_idx;
+    int unsigned max_beats;
+
+    max_beats = tdata.size();
+    assert (max_beats > 0)
+    else $fatal(1, "%s receive_burst called with no data beats", vip_name);
+    assert (tkeep.size() >= max_beats)
+    else $fatal(1, "%s receive_burst tkeep array too short", vip_name);
+    assert (tstrb.size() >= max_beats)
+    else $fatal(1, "%s receive_burst tstrb array too short", vip_name);
+    assert (tlast.size() >= max_beats)
+    else $fatal(1, "%s receive_burst tlast array too short", vip_name);
+    assert (tid.size() >= max_beats)
+    else $fatal(1, "%s receive_burst tid array too short", vip_name);
+    assert (tdest.size() >= max_beats)
+    else $fatal(1, "%s receive_burst tdest array too short", vip_name);
+    assert (tuser.size() >= max_beats)
+    else $fatal(1, "%s receive_burst tuser array too short", vip_name);
+
+    beat_idx = 0;
+    do begin
+      receive(tdata[beat_idx], tkeep[beat_idx], tstrb[beat_idx],
+              tlast[beat_idx], tid[beat_idx], tdest[beat_idx], tuser[beat_idx]);
+      beat_idx++;
+      if (beat_idx > max_beats) begin
+        $fatal(1, "%s receive_burst exceeded max_beats=%0d without seeing tlast", vip_name, max_beats);
+      end
+    end while (!tlast[beat_idx - 1]);
   endtask
 
 endclass

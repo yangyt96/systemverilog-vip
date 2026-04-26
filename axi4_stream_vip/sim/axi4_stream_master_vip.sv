@@ -49,7 +49,7 @@ class Axi4StreamMasterVIP #(
     end
   endtask
 
-  // API: transmit
+  // API: transmit single beat
   task transmit(logic [DATA_WIDTH-1:0] tdata, logic [KEEP_WIDTH-1:0] tkeep = '1,
                 logic [KEEP_WIDTH-1:0] tstrb = '1, bit tlast = '1, logic [TID_WIDTH-1:0] tid = '0,
                 logic [TDEST_WIDTH-1:0] tdest = '0, logic [TUSER_WIDTH-1:0] tuser = 0);
@@ -88,6 +88,39 @@ class Axi4StreamMasterVIP #(
     $display("[%0t] %s TX tdata=%h tkeep=%h tstrb=%h tlast=%0b tid=%0h tdest=%0h tuser=%0h", $time,
              vip_name, tdata, tkeep, tstrb, tlast, tid, tdest, tuser);
     vif.tvalid = 1'b0;
+  endtask
+
+  // API: transmit burst - multiple beats with tlast on last beat
+  task transmit_burst(ref logic [DATA_WIDTH-1:0] tdata[],
+                     ref logic [KEEP_WIDTH-1:0] tkeep[],
+                     ref logic [KEEP_WIDTH-1:0] tstrb[],
+                     ref bit tlast[],
+                     ref logic [TID_WIDTH-1:0] tid[],
+                     ref logic [TDEST_WIDTH-1:0] tdest[],
+                     ref logic [TUSER_WIDTH-1:0] tuser[]);
+    int unsigned beat_count;
+    int unsigned beat_idx;
+
+    beat_count = tdata.size();
+    assert (beat_count > 0)
+    else $fatal(1, "%s transmit_burst called with no data beats", vip_name);
+    assert (tkeep.size() >= beat_count)
+    else $fatal(1, "%s transmit_burst tkeep array too short", vip_name);
+    assert (tstrb.size() >= beat_count)
+    else $fatal(1, "%s transmit_burst tstrb array too short", vip_name);
+    assert (tlast.size() >= beat_count)
+    else $fatal(1, "%s transmit_burst tlast array too short", vip_name);
+    assert (tid.size() >= beat_count)
+    else $fatal(1, "%s transmit_burst tid array too short", vip_name);
+    assert (tdest.size() >= beat_count)
+    else $fatal(1, "%s transmit_burst tdest array too short", vip_name);
+    assert (tuser.size() >= beat_count)
+    else $fatal(1, "%s transmit_burst tuser array too short", vip_name);
+
+    for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
+      transmit(tdata[beat_idx], tkeep[beat_idx], tstrb[beat_idx],
+               tlast[beat_idx], tid[beat_idx], tdest[beat_idx], tuser[beat_idx]);
+    end
   endtask
 
 endclass
