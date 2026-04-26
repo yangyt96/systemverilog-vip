@@ -24,7 +24,11 @@ module axi4_lite_dut_tb;
   Axi4LiteMasterVIP #(ADDR_WIDTH, DATA_WIDTH, STRB_WIDTH) master;
 
   // Instantiate the memory VIP module - connect as slave to master's output
-  axi4_lite_mem_vip mem_vip (
+  axi4_lite_mem_vip #(
+      .ADDR_WIDTH(ADDR_WIDTH),
+      .DATA_WIDTH(DATA_WIDTH),
+      .STRB_WIDTH(STRB_WIDTH)
+  ) mem_vip (
     .aclk     (clk),
     .aresetn  (rstn),
     .awaddr   (s_axil_if.awaddr),
@@ -57,7 +61,7 @@ module axi4_lite_dut_tb;
   endfunction
 
   function automatic logic [DATA_WIDTH-1:0] build_wdata(int unsigned index);
-    return (32'hABCD_0000 | index);
+    return (DATA_WIDTH'(32'hABCD_0000) | DATA_WIDTH'(index));
   endfunction
 
   function automatic logic [STRB_WIDTH-1:0] build_wstrb(int unsigned index);
