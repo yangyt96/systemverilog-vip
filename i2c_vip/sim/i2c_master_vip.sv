@@ -155,10 +155,8 @@ class I2CMasterVIP #(
 
   // API: multi-byte write with optional repeated start
   // When use_repeated_start=1, a repeated start is sent instead of start+stop around the address phase.
-  task automatic write_bytes(input logic [6:0] address,
-                             input logic [7:0] data[],
-                             output bit address_ack,
-                             output bit data_acks[],
+  task automatic write_bytes(input logic [6:0] address, input logic [7:0] data[],
+                             output bit address_ack, output bit data_acks[],
                              input bit use_repeated_start = 1'b0);
     bit ack;
 
@@ -180,16 +178,14 @@ class I2CMasterVIP #(
 
     stop_condition();
 
-    $display("[%0t] %s WRITE_BYTES addr=%h count=%0d address_ack=%0b", $time, vip_name,
-             address, data.size(), address_ack);
+    $display("[%0t] %s WRITE_BYTES addr=%h count=%0d address_ack=%0b", $time, vip_name, address,
+             data.size(), address_ack);
   endtask
 
   // API: multi-byte read with optional repeated start
   // NACK is sent on the last byte; all preceding bytes are ACKed.
-  task automatic read_bytes(input logic [6:0] address,
-                            ref logic [7:0] data[],
-                            output bit address_ack,
-                            input bit use_repeated_start = 1'b0);
+  task automatic read_bytes(input logic [6:0] address, ref logic [7:0] data[],
+                            output bit address_ack, input bit use_repeated_start = 1'b0);
     wait_reset_release();
 
     if (use_repeated_start) begin
@@ -206,8 +202,8 @@ class I2CMasterVIP #(
 
     stop_condition();
 
-    $display("[%0t] %s READ_BYTES addr=%h count=%0d address_ack=%0b", $time, vip_name,
-             address, data.size(), address_ack);
+    $display("[%0t] %s READ_BYTES addr=%h count=%0d address_ack=%0b", $time, vip_name, address,
+             data.size(), address_ack);
   endtask
 
 endclass

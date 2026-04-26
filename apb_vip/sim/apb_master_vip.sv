@@ -23,7 +23,7 @@ class ApbMasterVIP #(
   endfunction
 
   function void configure_pause_generator(bit enable, int unsigned min_cycles = 0,
-                                      int unsigned max_cycles = 0);
+                                          int unsigned max_cycles = 0);
     enable_pause_generator = enable;
     min_pause_cycles = min_cycles;
     max_pause_cycles = (max_cycles < min_cycles) ? min_cycles : max_cycles;

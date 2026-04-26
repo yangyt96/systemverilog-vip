@@ -49,7 +49,7 @@ class I2CSlaveVIP;
         $fatal(1, "%s timed out waiting for I2C idle bus", vip_name);
       end
     end
-    cycles = 0;
+    cycles   = 0;
     prev_sda = vif.sda;
     do begin
       @(posedge vif.clk);
@@ -68,7 +68,7 @@ class I2CSlaveVIP;
     int unsigned cycles;
     bit prev_sda;
 
-    cycles = 0;
+    cycles   = 0;
     prev_sda = vif.sda;
     do begin
       @(posedge vif.clk);
@@ -177,8 +177,7 @@ class I2CSlaveVIP;
 
   // API: multi-byte write with optional clock stretching after address ACK
   // Reads exactly byte_count data bytes, then waits for stop.
-  task automatic expect_write_bytes(input int unsigned byte_count,
-                                    output logic [7:0] data[],
+  task automatic expect_write_bytes(input int unsigned byte_count, output logic [7:0] data[],
                                     output bit address_match,
                                     input int unsigned stretch_after_addr = 0);
     logic [7:0] address_byte;
@@ -211,10 +210,8 @@ class I2CSlaveVIP;
 
   // API: multi-byte read with optional clock stretching after address ACK
   // Sends byte_count data bytes. Master ACKs all but the last (NACK on last).
-  task automatic respond_read_bytes(input int unsigned byte_count,
-                                    input logic [7:0] data[],
-                                    output bit address_match,
-                                    output bit master_acks[],
+  task automatic respond_read_bytes(input int unsigned byte_count, input logic [7:0] data[],
+                                    output bit address_match, output bit master_acks[],
                                     input int unsigned stretch_after_addr = 0);
     logic [7:0] address_byte;
     logic [6:0] rx_address;

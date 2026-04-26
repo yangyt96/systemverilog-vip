@@ -111,10 +111,10 @@ class Axi4LiteMasterVIP #(
 
     apply_pause();
 
-    vif.araddr  = addr;
-    vif.arprot  = prot;
+    vif.araddr = addr;
+    vif.arprot = prot;
     vif.arvalid = 1'b1;
-    vif.rready  = 1'b1;
+    vif.rready = 1'b1;
 
     cycles = 0;
     do begin

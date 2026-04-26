@@ -10,31 +10,31 @@ module axi4_lite_mem_vip #(
     parameter int STRB_WIDTH = DATA_WIDTH / 8,
     parameter int MEM_BYTES  = 1024
 ) (
-    input  logic                    aclk,
-    input  logic                    aresetn,
-    input  logic [ADDR_WIDTH-1:0]   awaddr,
-    input  logic [            2:0]  awprot,
-    input  logic                    awvalid,
-    output logic                    awready,
-    input  logic [DATA_WIDTH-1:0]   wdata,
-    input  logic [STRB_WIDTH-1:0]   wstrb,
-    input  logic                    wvalid,
-    output logic                    wready,
-    output logic [            1:0]  bresp,
-    output logic                    bvalid,
-    input  logic                    bready,
-    input  logic [ADDR_WIDTH-1:0]   araddr,
-    input  logic [            2:0]  arprot,
-    input  logic                    arvalid,
-    output logic                    arready,
-    output logic [DATA_WIDTH-1:0]   rdata,
-    output logic [            1:0]  rresp,
-    output logic                    rvalid,
-    input  logic                    rready
+    input  logic                  aclk,
+    input  logic                  aresetn,
+    input  logic [ADDR_WIDTH-1:0] awaddr,
+    input  logic [           2:0] awprot,
+    input  logic                  awvalid,
+    output logic                  awready,
+    input  logic [DATA_WIDTH-1:0] wdata,
+    input  logic [STRB_WIDTH-1:0] wstrb,
+    input  logic                  wvalid,
+    output logic                  wready,
+    output logic [           1:0] bresp,
+    output logic                  bvalid,
+    input  logic                  bready,
+    input  logic [ADDR_WIDTH-1:0] araddr,
+    input  logic [           2:0] arprot,
+    input  logic                  arvalid,
+    output logic                  arready,
+    output logic [DATA_WIDTH-1:0] rdata,
+    output logic [           1:0] rresp,
+    output logic                  rvalid,
+    input  logic                  rready
 );
 
   // Byte-addressed memory storage
-  byte unsigned mem [MEM_BYTES];
+  byte unsigned mem[MEM_BYTES];
 
   // Write address latch (captured during AW handshake for use during W handshake)
   logic [ADDR_WIDTH-1:0] wr_addr;
@@ -50,7 +50,7 @@ module axi4_lite_mem_vip #(
     begin
       data = '0;
       for (int byte_idx = 0; byte_idx < STRB_WIDTH; byte_idx++) begin
-        data[(8*byte_idx)+:8] = mem[mem_index(addr + byte_idx)];
+        data[(8*byte_idx)+:8] = mem[mem_index(addr+byte_idx)];
       end
       return data;
     end
@@ -61,7 +61,7 @@ module axi4_lite_mem_vip #(
                             input logic [STRB_WIDTH-1:0] strb);
     for (int byte_idx = 0; byte_idx < STRB_WIDTH; byte_idx++) begin
       if (strb[byte_idx]) begin
-        mem[mem_index(addr + byte_idx)] = data[(8*byte_idx)+:8];
+        mem[mem_index(addr+byte_idx)] = data[(8*byte_idx)+:8];
       end
     end
   endtask

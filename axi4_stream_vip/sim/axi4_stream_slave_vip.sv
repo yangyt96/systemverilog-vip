@@ -18,8 +18,8 @@ class Axi4StreamSlaveVIP #(
   function new(
       virtual axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH).slave vif,
       string vip_name = "axi4_stream_slave_vip");
-    this.vif = vif;
-    this.vip_name = vip_name;
+    this.vif            = vif;
+    this.vip_name       = vip_name;
     enable_backpressure = 1'b0;
     min_stall_cycles    = 0;
     max_stall_cycles    = 0;
@@ -96,13 +96,10 @@ class Axi4StreamSlaveVIP #(
   endtask
 
   // API: receive burst - multiple beats until tlast is seen
-  task receive_burst(ref logic [DATA_WIDTH-1:0] tdata[],
-                    ref logic [KEEP_WIDTH-1:0] tkeep[],
-                    ref logic [KEEP_WIDTH-1:0] tstrb[],
-                    ref bit tlast[],
-                    ref logic [TID_WIDTH-1:0] tid[],
-                    ref logic [TDEST_WIDTH-1:0] tdest[],
-                    ref logic [TUSER_WIDTH-1:0] tuser[]);
+  task receive_burst(ref logic [DATA_WIDTH-1:0] tdata[], ref logic [KEEP_WIDTH-1:0] tkeep[],
+                     ref logic [KEEP_WIDTH-1:0] tstrb[], ref bit tlast[],
+                     ref logic [TID_WIDTH-1:0] tid[], ref logic [TDEST_WIDTH-1:0] tdest[],
+                     ref logic [TUSER_WIDTH-1:0] tuser[]);
     int unsigned beat_idx;
     int unsigned max_beats;
 
@@ -124,13 +121,14 @@ class Axi4StreamSlaveVIP #(
 
     beat_idx = 0;
     do begin
-      receive(tdata[beat_idx], tkeep[beat_idx], tstrb[beat_idx],
-              tlast[beat_idx], tid[beat_idx], tdest[beat_idx], tuser[beat_idx]);
+      receive(tdata[beat_idx], tkeep[beat_idx], tstrb[beat_idx], tlast[beat_idx], tid[beat_idx],
+              tdest[beat_idx], tuser[beat_idx]);
       beat_idx++;
       if (beat_idx > max_beats) begin
-        $fatal(1, "%s receive_burst exceeded max_beats=%0d without seeing tlast", vip_name, max_beats);
+        $fatal(1, "%s receive_burst exceeded max_beats=%0d without seeing tlast", vip_name,
+               max_beats);
       end
-    end while (!tlast[beat_idx - 1]);
+    end while (!tlast[beat_idx-1]);
   endtask
 
 endclass

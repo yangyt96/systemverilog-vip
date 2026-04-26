@@ -142,15 +142,12 @@ class Axi4FullMasterVIP #(
   endtask
 
   // Write transaction: address, data, and response
-  task write(input logic [ADDR_WIDTH-1:0] addr,
-             input logic [DATA_WIDTH-1:0] data,
-             input logic [STRB_WIDTH-1:0] strb = '1,
-             input logic [ID_WIDTH-1:0] id = '0,
+  task write(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
+             input logic [STRB_WIDTH-1:0] strb = '1, input logic [ID_WIDTH-1:0] id = '0,
              input logic [LEN_WIDTH-1:0] len = '0,  // Single beat
              input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
              input logic [BURST_WIDTH-1:0] burst = 2'b01,  // INCR
-             input logic [PROT_WIDTH-1:0] prot = 3'b000,
-            output logic [1:0] resp);
+             input logic [PROT_WIDTH-1:0] prot = 3'b000, output logic [1:0] resp);
     logic [DATA_WIDTH-1:0] burst_data[1];
     logic [STRB_WIDTH-1:0] burst_strb[1];
     begin
@@ -161,12 +158,10 @@ class Axi4FullMasterVIP #(
   endtask
 
   // Write Address Channel - Send write address phase
-  task write_awchannel(input logic [ADDR_WIDTH-1:0] addr,
-                       input int unsigned beat_count = 1,
-                       input logic [ID_WIDTH-1:0] id = '0,
-                       input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
-                       input logic [BURST_WIDTH-1:0] burst = 2'b01,
-                       input logic [PROT_WIDTH-1:0] prot = 3'b000);
+  task write_awchannel(
+      input logic [ADDR_WIDTH-1:0] addr, input int unsigned beat_count = 1,
+      input logic [ID_WIDTH-1:0] id = '0, input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
+      input logic [BURST_WIDTH-1:0] burst = 2'b01, input logic [PROT_WIDTH-1:0] prot = 3'b000);
     int unsigned cycles;
 
     assert (beat_count > 0)
@@ -187,7 +182,7 @@ class Axi4FullMasterVIP #(
     vif.awuser   = '0;
     vif.awvalid  = 1'b1;
 
-    cycles = 0;
+    cycles       = 0;
     do begin
       @(posedge vif.aclk);
       cycles++;
@@ -197,12 +192,12 @@ class Axi4FullMasterVIP #(
     end while (!(vif.awvalid && vif.awready));
 
     vif.awvalid = 1'b0;
-    $display("[%0t] %s TX AW addr=%h beats=%0d id=%0d burst=%0d", $time, vip_name, addr, beat_count, id, burst);
+    $display("[%0t] %s TX AW addr=%h beats=%0d id=%0d burst=%0d", $time, vip_name, addr,
+             beat_count, id, burst);
   endtask
 
   // Write Data Channel - Send write data phase
-  task write_wchannel(input logic [DATA_WIDTH-1:0] data[],
-                      input logic [STRB_WIDTH-1:0] strb[]);
+  task write_wchannel(input logic [DATA_WIDTH-1:0] data[], input logic [STRB_WIDTH-1:0] strb[]);
     int unsigned beat_count;
     int unsigned beat_idx;
     int unsigned cycles;
@@ -215,14 +210,14 @@ class Axi4FullMasterVIP #(
 
     apply_pause();
 
-    vif.wdata    = data[0];
-    vif.wstrb    = strb[0];
-    vif.wlast    = (beat_count == 1);
-    vif.wuser    = '0;
-    vif.wvalid   = 1'b1;
+    vif.wdata  = data[0];
+    vif.wstrb  = strb[0];
+    vif.wlast  = (beat_count == 1);
+    vif.wuser  = '0;
+    vif.wvalid = 1'b1;
 
-    beat_idx     = 0;
-    cycles       = 0;
+    beat_idx   = 0;
+    cycles     = 0;
 
     while (beat_idx < beat_count) begin
       @(posedge vif.aclk);
@@ -268,14 +263,11 @@ class Axi4FullMasterVIP #(
     vif.bready = 1'b0;
   endtask
 
-  task write_burst(input logic [ADDR_WIDTH-1:0] addr,
-                   input logic [DATA_WIDTH-1:0] data[],
-                   input logic [STRB_WIDTH-1:0] strb[],
-                   input logic [ID_WIDTH-1:0] id = '0,
+  task write_burst(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data[],
+                   input logic [STRB_WIDTH-1:0] strb[], input logic [ID_WIDTH-1:0] id = '0,
                    input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
                    input logic [BURST_WIDTH-1:0] burst = 2'b01,
-                   input logic [PROT_WIDTH-1:0] prot = 3'b000,
-                   output logic [1:0] resp);
+                   input logic [PROT_WIDTH-1:0] prot = 3'b000, output logic [1:0] resp);
     int unsigned beat_count;
 
     beat_count = data.size();
@@ -291,10 +283,8 @@ class Axi4FullMasterVIP #(
   endtask
 
   // Read transaction
-  task read(input logic [ADDR_WIDTH-1:0] addr,
-            output logic [DATA_WIDTH-1:0] data,
-            output logic [1:0] resp,
-            input logic [ID_WIDTH-1:0] id = '0,
+  task read(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
+            output logic [1:0] resp, input logic [ID_WIDTH-1:0] id = '0,
             input logic [LEN_WIDTH-1:0] len = '0,  // Single beat
             input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
             input logic [BURST_WIDTH-1:0] burst = 2'b01,  // INCR
@@ -311,12 +301,10 @@ class Axi4FullMasterVIP #(
   endtask
 
   // Read Address Channel - Send read address phase
-  task read_archannel(input logic [ADDR_WIDTH-1:0] addr,
-                      input int unsigned beat_count = 1,
-                      input logic [ID_WIDTH-1:0] id = '0,
-                      input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
-                      input logic [BURST_WIDTH-1:0] burst = 2'b01,
-                      input logic [PROT_WIDTH-1:0] prot = 3'b000);
+  task read_archannel(
+      input logic [ADDR_WIDTH-1:0] addr, input int unsigned beat_count = 1,
+      input logic [ID_WIDTH-1:0] id = '0, input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
+      input logic [BURST_WIDTH-1:0] burst = 2'b01, input logic [PROT_WIDTH-1:0] prot = 3'b000);
     int unsigned cycles;
 
     assert (beat_count > 0)
@@ -337,7 +325,7 @@ class Axi4FullMasterVIP #(
     vif.aruser   = '0;
     vif.arvalid  = 1'b1;
 
-    cycles = 0;
+    cycles       = 0;
     do begin
       @(posedge vif.aclk);
       cycles++;
@@ -347,12 +335,12 @@ class Axi4FullMasterVIP #(
     end while (!(vif.arvalid && vif.arready));
 
     vif.arvalid = 1'b0;
-    $display("[%0t] %s TX AR addr=%h beats=%0d id=%0d burst=%0d", $time, vip_name, addr, beat_count, id, burst);
+    $display("[%0t] %s TX AR addr=%h beats=%0d id=%0d burst=%0d", $time, vip_name, addr,
+             beat_count, id, burst);
   endtask
 
   // Read Data Channel - Receive read data phase
-  task read_rchannel(ref logic [DATA_WIDTH-1:0] data[],
-                     ref logic [1:0] resp[],
+  task read_rchannel(ref logic [DATA_WIDTH-1:0] data[], ref logic [1:0] resp[],
                      input logic [ID_WIDTH-1:0] id = '0);
     int unsigned beat_count;
     int unsigned beat_idx;

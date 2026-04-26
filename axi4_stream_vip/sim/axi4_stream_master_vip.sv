@@ -91,13 +91,10 @@ class Axi4StreamMasterVIP #(
   endtask
 
   // API: transmit burst - multiple beats with tlast on last beat
-  task transmit_burst(ref logic [DATA_WIDTH-1:0] tdata[],
-                     ref logic [KEEP_WIDTH-1:0] tkeep[],
-                     ref logic [KEEP_WIDTH-1:0] tstrb[],
-                     ref bit tlast[],
-                     ref logic [TID_WIDTH-1:0] tid[],
-                     ref logic [TDEST_WIDTH-1:0] tdest[],
-                     ref logic [TUSER_WIDTH-1:0] tuser[]);
+  task transmit_burst(ref logic [DATA_WIDTH-1:0] tdata[], ref logic [KEEP_WIDTH-1:0] tkeep[],
+                      ref logic [KEEP_WIDTH-1:0] tstrb[], ref bit tlast[],
+                      ref logic [TID_WIDTH-1:0] tid[], ref logic [TDEST_WIDTH-1:0] tdest[],
+                      ref logic [TUSER_WIDTH-1:0] tuser[]);
     int unsigned beat_count;
     int unsigned beat_idx;
 
@@ -118,8 +115,8 @@ class Axi4StreamMasterVIP #(
     else $fatal(1, "%s transmit_burst tuser array too short", vip_name);
 
     for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
-      transmit(tdata[beat_idx], tkeep[beat_idx], tstrb[beat_idx],
-               tlast[beat_idx], tid[beat_idx], tdest[beat_idx], tuser[beat_idx]);
+      transmit(tdata[beat_idx], tkeep[beat_idx], tstrb[beat_idx], tlast[beat_idx], tid[beat_idx],
+               tdest[beat_idx], tuser[beat_idx]);
     end
   endtask
 

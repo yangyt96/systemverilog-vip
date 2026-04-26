@@ -24,7 +24,7 @@ class SpiMasterVIP #(
   endfunction
 
   function void configure_pause_generator(bit enable, int unsigned min_cycles = 0,
-                                       int unsigned max_cycles = 0);
+                                          int unsigned max_cycles = 0);
     enable_pause_generator = enable;
     min_pause_cycles = min_cycles;
     max_pause_cycles = (max_cycles < min_cycles) ? min_cycles : max_cycles;
@@ -74,13 +74,14 @@ class SpiMasterVIP #(
   //   Mode 1: CPOL=0, CPHA=1 - SCLK idle low,  sample on falling edge
   //   Mode 2: CPOL=1, CPHA=0 - SCLK idle high, sample on falling edge
   //   Mode 3: CPOL=1, CPHA=1 - SCLK idle high, sample on rising  edge
-  task automatic transfer(input logic [DATA_BITS-1:0] tx_data, output logic [DATA_BITS-1:0] rx_data);
+  task automatic transfer(input logic [DATA_BITS-1:0] tx_data,
+                          output logic [DATA_BITS-1:0] rx_data);
     int unsigned cycles;
     int unsigned pause_cycles;
 
     rx_data = '0;
 
-    cycles = 0;
+    cycles  = 0;
     while (!vif.rstn) begin
       @(posedge vif.clk);
       cycles++;
@@ -106,13 +107,13 @@ class SpiMasterVIP #(
         vif.sclk = ~cpol;  // first edge
         wait_half_sclk();
         rx_data[bit_idx] = vif.miso;
-        vif.sclk = cpol;   // second edge (back to idle)
+        vif.sclk = cpol;  // second edge (back to idle)
       end else begin
         // CPHA=1: first edge shifts data out, second edge samples data
         vif.sclk = ~cpol;  // first edge
         vif.mosi = tx_data[bit_idx];
         wait_half_sclk();
-        vif.sclk = cpol;   // second edge
+        vif.sclk = cpol;  // second edge
         wait_half_sclk();
         rx_data[bit_idx] = vif.miso;
       end
@@ -128,7 +129,8 @@ class SpiMasterVIP #(
     vif.cs_n = 1'b1;
     vif.mosi = 1'b0;
 
-    $display("[%0t] %s TX=%h RX=%h (CPOL=%0b CPHA=%0b)", $time, vip_name, tx_data, rx_data, cpol, cpha);
+    $display("[%0t] %s TX=%h RX=%h (CPOL=%0b CPHA=%0b)", $time, vip_name, tx_data, rx_data, cpol,
+             cpha);
   endtask
 
 endclass

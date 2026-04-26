@@ -29,7 +29,7 @@ jobs:
       - name: Check Formatting
         # continue-on-error: true
         run: |
-          SV_FILES="$(find ./ -type f \( -path "*/sim/*.sv" -o -name "axi4_stream_dut.sv" \))"
+          SV_FILES="$(find ./ -type f \( -path "*/sim/*.sv" \))"
           verible-verilog-format \
           --verify --inplace \
             ${SV_FILES}
