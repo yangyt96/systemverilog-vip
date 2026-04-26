@@ -142,12 +142,15 @@ class Axi4FullMasterVIP #(
   endtask
 
   // Write transaction: address, data, and response
-  task write(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
-             input logic [STRB_WIDTH-1:0] strb = '1, input logic [ID_WIDTH-1:0] id = '0,
+  task write(input logic [ADDR_WIDTH-1:0] addr,
+             input logic [DATA_WIDTH-1:0] data,
+             input logic [STRB_WIDTH-1:0] strb = '1,
+             input logic [ID_WIDTH-1:0] id = '0,
              input logic [LEN_WIDTH-1:0] len = '0,  // Single beat
              input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
              input logic [BURST_WIDTH-1:0] burst = 2'b01,  // INCR
-             input logic [PROT_WIDTH-1:0] prot = 3'b000, output logic [1:0] resp);
+             input logic [PROT_WIDTH-1:0] prot = 3'b000,
+            output logic [1:0] resp);
     logic [DATA_WIDTH-1:0] burst_data[1];
     logic [STRB_WIDTH-1:0] burst_strb[1];
     begin
@@ -159,7 +162,7 @@ class Axi4FullMasterVIP #(
 
   // Write Address Channel - Send write address phase
   task write_awchannel(input logic [ADDR_WIDTH-1:0] addr,
-                       input int unsigned beat_count,
+                       input int unsigned beat_count = 1,
                        input logic [ID_WIDTH-1:0] id = '0,
                        input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
                        input logic [BURST_WIDTH-1:0] burst = 2'b01,
@@ -265,11 +268,14 @@ class Axi4FullMasterVIP #(
     vif.bready = 1'b0;
   endtask
 
-  task write_burst(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data[],
-                   input logic [STRB_WIDTH-1:0] strb[], input logic [ID_WIDTH-1:0] id = '0,
+  task write_burst(input logic [ADDR_WIDTH-1:0] addr,
+                   input logic [DATA_WIDTH-1:0] data[],
+                   input logic [STRB_WIDTH-1:0] strb[],
+                   input logic [ID_WIDTH-1:0] id = '0,
                    input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
                    input logic [BURST_WIDTH-1:0] burst = 2'b01,
-                   input logic [PROT_WIDTH-1:0] prot = 3'b000, output logic [1:0] resp);
+                   input logic [PROT_WIDTH-1:0] prot = 3'b000,
+                   output logic [1:0] resp);
     int unsigned beat_count;
 
     beat_count = data.size();
@@ -285,8 +291,10 @@ class Axi4FullMasterVIP #(
   endtask
 
   // Read transaction
-  task read(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
-            output logic [1:0] resp, input logic [ID_WIDTH-1:0] id = '0,
+  task read(input logic [ADDR_WIDTH-1:0] addr,
+            output logic [DATA_WIDTH-1:0] data,
+            output logic [1:0] resp,
+            input logic [ID_WIDTH-1:0] id = '0,
             input logic [LEN_WIDTH-1:0] len = '0,  // Single beat
             input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
             input logic [BURST_WIDTH-1:0] burst = 2'b01,  // INCR
@@ -304,7 +312,7 @@ class Axi4FullMasterVIP #(
 
   // Read Address Channel - Send read address phase
   task read_archannel(input logic [ADDR_WIDTH-1:0] addr,
-                      input int unsigned beat_count,
+                      input int unsigned beat_count = 1,
                       input logic [ID_WIDTH-1:0] id = '0,
                       input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
                       input logic [BURST_WIDTH-1:0] burst = 2'b01,
