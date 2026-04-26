@@ -31,6 +31,8 @@ module i2c_vip_tb;
     return 8'((index * 8'h19) ^ 8'hC5);
   endfunction
 
+  // --- Backward-compatible single-byte tests ---
+
   task automatic run_write(input int unsigned index);
     logic [7:0] master_data;
     logic [7:0] slave_data;
@@ -100,7 +102,6 @@ module i2c_vip_tb;
     #(INTER_TRANSACTION_PAUSE);
   endtask
 
-
   task automatic drive_reads(input int unsigned start_index,
                              input int unsigned transfer_count);
     logic [7:0] master_data;
@@ -129,6 +130,140 @@ module i2c_vip_tb;
       assert(address_match) else $error("I2C continuous read slave address mismatch at stimulus %0d", idx);
       assert(!master_ack) else $error("I2C continuous read expected final NACK at stimulus %0d", idx);
     end
+  endtask
+
+  // --- Multi-byte write test ---
+  task automatic run_multi_byte_write();
+    logic [7:0] m_data[];
+    logic [7:0] s_data[];
+    bit address_ack;
+    bit data_acks[];
+    bit address_match;
+
+    m_data = new[3];
+    m_data[0] = 8'hDE;
+    m_data[1] = 8'hAD;
+    m_data[2] = 8'hBE;
+
+    fork
+      master_vip.write_bytes(SLAVE_ADDRESS, m_data, address_ack, data_acks);
+      slave_vip.expect_write_bytes(3, s_data, address_match);
+    join
+
+    assert(address_ack) else $error("I2C multi-byte write address NACK");
+    assert(address_match) else $error("I2C multi-byte write address mismatch");
+    assert(s_data.size() == 3) else $error("I2C multi-byte write count mismatch exp=3 got=%0d", s_data.size());
+    assert(s_data[0] == 8'hDE && s_data[1] == 8'hAD && s_data[2] == 8'hBE)
+      else $error("I2C multi-byte write data mismatch got=%h %h %h", s_data[0], s_data[1], s_data[2]);
+    assert(data_acks.size() == 3 && data_acks[0] && data_acks[1] && data_acks[2])
+      else $error("I2C multi-byte write data NACK");
+
+    $display("[%0t] Multi-byte write PASSED", $time);
+    #(INTER_TRANSACTION_PAUSE);
+  endtask
+
+  // --- Multi-byte read test ---
+  task automatic run_multi_byte_read();
+    logic [7:0] s_data[];
+    logic [7:0] m_data[];
+    bit address_ack;
+    bit address_match;
+    bit master_acks[];
+
+    s_data = new[3];
+    s_data[0] = 8'hCA;
+    s_data[1] = 8'hFE;
+    s_data[2] = 8'h42;
+    m_data = new[3];
+
+    fork
+      master_vip.read_bytes(SLAVE_ADDRESS, m_data, address_ack);
+      slave_vip.respond_read_bytes(3, s_data, address_match, master_acks);
+    join
+
+    assert(address_ack) else $error("I2C multi-byte read address NACK");
+    assert(address_match) else $error("I2C multi-byte read address mismatch");
+    assert(m_data.size() == 3 && m_data[0] == 8'hCA && m_data[1] == 8'hFE && m_data[2] == 8'h42)
+      else $error("I2C multi-byte read data mismatch got=%h %h %h", m_data[0], m_data[1], m_data[2]);
+    // Master ACKs first two bytes, NACKs last
+    assert(master_acks[0] && master_acks[1] && !master_acks[2])
+      else $error("I2C multi-byte read ACK pattern mismatch");
+
+    $display("[%0t] Multi-byte read PASSED", $time);
+    #(INTER_TRANSACTION_PAUSE);
+  endtask
+
+  // --- Clock stretching test ---
+  task automatic run_clock_stretching();
+    logic [7:0] m_data[];
+    logic [7:0] s_data[];
+    bit address_ack;
+    bit data_acks[];
+    bit address_match;
+
+    m_data = new[1];
+    m_data[0] = 8'h77;
+
+    fork
+      master_vip.write_bytes(SLAVE_ADDRESS, m_data, address_ack, data_acks);
+      slave_vip.expect_write_bytes(1, s_data, address_match, .stretch_after_addr(50));
+    join
+
+    assert(address_ack) else $error("I2C clock-stretch write address NACK");
+    assert(address_match) else $error("I2C clock-stretch write address mismatch");
+    assert(s_data.size() == 1 && s_data[0] == 8'h77)
+      else $error("I2C clock-stretch write data mismatch");
+
+    $display("[%0t] Clock stretching PASSED", $time);
+    #(INTER_TRANSACTION_PAUSE);
+  endtask
+
+  // --- Repeated start test ---
+  task automatic run_repeated_start();
+    logic [7:0] write_data[];
+    logic [7:0] read_data[];
+    logic [7:0] s_write_data[];
+    logic [7:0] s_read_data[];
+    bit w_addr_ack, r_addr_ack;
+    bit w_data_acks[];
+    bit w_address_match, r_address_match;
+    bit r_master_acks[];
+
+    write_data = new[2];
+    write_data[0] = 8'h12;
+    write_data[1] = 8'h34;
+    s_read_data = new[2];
+    s_read_data[0] = 8'h56;
+    s_read_data[1] = 8'h78;
+
+    // Write with repeated start, then read with repeated start
+    fork
+      begin
+        master_vip.write_bytes(SLAVE_ADDRESS, write_data, w_addr_ack, w_data_acks, .use_repeated_start(1'b1));
+      end
+      slave_vip.expect_write_bytes(2, s_write_data, w_address_match);
+    join
+
+    assert(w_addr_ack) else $error("I2C repeated-start write address NACK");
+    assert(w_address_match) else $error("I2C repeated-start write address mismatch");
+    assert(s_write_data.size() == 2 && s_write_data[0] == 8'h12 && s_write_data[1] == 8'h34)
+      else $error("I2C repeated-start write data mismatch");
+
+    #(INTER_TRANSACTION_PAUSE);
+
+    read_data = new[2];
+    fork
+      master_vip.read_bytes(SLAVE_ADDRESS, read_data, r_addr_ack, .use_repeated_start(1'b1));
+      slave_vip.respond_read_bytes(2, s_read_data, r_address_match, r_master_acks);
+    join
+
+    assert(r_addr_ack) else $error("I2C repeated-start read address NACK");
+    assert(r_address_match) else $error("I2C repeated-start read address mismatch");
+    assert(read_data.size() == 2 && read_data[0] == 8'h56 && read_data[1] == 8'h78)
+      else $error("I2C repeated-start read data mismatch");
+
+    $display("[%0t] Repeated start PASSED", $time);
+    #(INTER_TRANSACTION_PAUSE);
   endtask
 
   initial begin
@@ -160,6 +295,7 @@ module i2c_vip_tb;
     @(posedge rstn);
     @(posedge clk);
 
+    // Original single-byte tests
     for (stimulus_idx = 0; stimulus_idx < STIMULUS_COUNT; stimulus_idx++) begin
       run_write(stimulus_idx);
       run_read(stimulus_idx);
@@ -175,6 +311,12 @@ module i2c_vip_tb;
     assert(observed_count == CONTINUOUS_TRANSFER_COUNT)
       else $error("I2C continuous count mismatch exp=%0d got=%0d",
                   CONTINUOUS_TRANSFER_COUNT, observed_count);
+
+    // New feature tests
+    run_multi_byte_write();
+    run_multi_byte_read();
+    run_clock_stretching();
+    run_repeated_start();
   end
 
 endmodule

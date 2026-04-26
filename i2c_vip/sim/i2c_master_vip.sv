@@ -51,6 +51,18 @@ class I2CMasterVIP #(
     wait_half_scl();
   endtask
 
+  // Repeated start: SDA goes high-to-low while SCL is high
+  task automatic repeated_start_condition();
+    vif.master_sda_low = 1'b0;
+    wait_half_scl();
+    release_scl();
+    wait_half_scl();
+    vif.master_sda_low = 1'b1;
+    wait_half_scl();
+    vif.master_scl_low = 1'b1;
+    wait_half_scl();
+  endtask
+
   task automatic stop_condition();
     vif.master_sda_low = 1'b1;
     wait_half_scl();
@@ -102,10 +114,8 @@ class I2CMasterVIP #(
     write_bit(!ack);
   endtask
 
-  task automatic write_byte(input logic [6:0] address, input logic [7:0] data,
-                            output bit address_ack, output bit data_ack);
+  task automatic wait_reset_release();
     int unsigned cycles;
-
     cycles = 0;
     while (!vif.rstn) begin
       @(posedge vif.clk);
@@ -115,7 +125,12 @@ class I2CMasterVIP #(
       end
     end
     @(posedge vif.clk);
+  endtask
 
+  // API: single-byte write (backward compatible)
+  task automatic write_byte(input logic [6:0] address, input logic [7:0] data,
+                            output bit address_ack, output bit data_ack);
+    wait_reset_release();
     start_condition();
     write_raw_byte({address, 1'b0}, address_ack);
     write_raw_byte(data, data_ack);
@@ -125,20 +140,10 @@ class I2CMasterVIP #(
              address, data, address_ack, data_ack);
   endtask
 
+  // API: single-byte read (backward compatible)
   task automatic read_byte(input logic [6:0] address, output logic [7:0] data,
                            output bit address_ack);
-    int unsigned cycles;
-
-    cycles = 0;
-    while (!vif.rstn) begin
-      @(posedge vif.clk);
-      cycles++;
-      if (cycles >= timeout_cycles) begin
-        $fatal(1, "%s timed out waiting for I2C reset release", vip_name);
-      end
-    end
-    @(posedge vif.clk);
-
+    wait_reset_release();
     start_condition();
     write_raw_byte({address, 1'b1}, address_ack);
     read_raw_byte(data, 1'b0);
@@ -146,6 +151,63 @@ class I2CMasterVIP #(
 
     $display("[%0t] %s READ  addr=%h data=%h address_ack=%0b", $time, vip_name, address, data,
              address_ack);
+  endtask
+
+  // API: multi-byte write with optional repeated start
+  // When use_repeated_start=1, a repeated start is sent instead of start+stop around the address phase.
+  task automatic write_bytes(input logic [6:0] address,
+                             input logic [7:0] data[],
+                             output bit address_ack,
+                             output bit data_acks[],
+                             input bit use_repeated_start = 1'b0);
+    bit ack;
+
+    wait_reset_release();
+    data_acks = new[data.size()];
+
+    if (use_repeated_start) begin
+      repeated_start_condition();
+    end else begin
+      start_condition();
+    end
+
+    write_raw_byte({address, 1'b0}, address_ack);
+
+    for (int unsigned i = 0; i < data.size(); i++) begin
+      write_raw_byte(data[i], ack);
+      data_acks[i] = ack;
+    end
+
+    stop_condition();
+
+    $display("[%0t] %s WRITE_BYTES addr=%h count=%0d address_ack=%0b", $time, vip_name,
+             address, data.size(), address_ack);
+  endtask
+
+  // API: multi-byte read with optional repeated start
+  // NACK is sent on the last byte; all preceding bytes are ACKed.
+  task automatic read_bytes(input logic [6:0] address,
+                            ref logic [7:0] data[],
+                            output bit address_ack,
+                            input bit use_repeated_start = 1'b0);
+    wait_reset_release();
+
+    if (use_repeated_start) begin
+      repeated_start_condition();
+    end else begin
+      start_condition();
+    end
+
+    write_raw_byte({address, 1'b1}, address_ack);
+
+    for (int unsigned i = 0; i < data.size(); i++) begin
+      read_raw_byte(data[i], (i < data.size() - 1));
+    end
+
+    stop_condition();
+
+    $display("[%0t] %s READ_BYTES addr=%h count=%0d address_ack=%0b", $time, vip_name,
+             address, data.size(), address_ack);
   endtask
 
 endclass
