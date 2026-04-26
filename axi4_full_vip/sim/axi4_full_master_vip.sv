@@ -157,21 +157,17 @@ class Axi4FullMasterVIP #(
     end
   endtask
 
-  task write_burst(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data[],
-                   input logic [STRB_WIDTH-1:0] strb[], input logic [ID_WIDTH-1:0] id = '0,
-                   input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
-                   input logic [BURST_WIDTH-1:0] burst = 2'b01,
-                   input logic [PROT_WIDTH-1:0] prot = 3'b000, output logic [1:0] resp);
-    bit aw_done;
-    int unsigned beat_count;
-    int unsigned beat_idx;
+  // Write Address Channel - Send write address phase
+  task write_awchannel(input logic [ADDR_WIDTH-1:0] addr,
+                       input int unsigned beat_count,
+                       input logic [ID_WIDTH-1:0] id = '0,
+                       input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
+                       input logic [BURST_WIDTH-1:0] burst = 2'b01,
+                       input logic [PROT_WIDTH-1:0] prot = 3'b000);
     int unsigned cycles;
 
-    beat_count = data.size();
     assert (beat_count > 0)
-    else $fatal(1, "%s write_burst called with no data beats", vip_name);
-    assert (strb.size() >= beat_count)
-    else $fatal(1, "%s write_burst strb array too short", vip_name);
+    else $fatal(1, "%s write_awchannel called with beat_count=0", vip_name);
 
     apply_pause();
 
@@ -188,15 +184,40 @@ class Axi4FullMasterVIP #(
     vif.awuser   = '0;
     vif.awvalid  = 1'b1;
 
+    cycles = 0;
+    do begin
+      @(posedge vif.aclk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for AXI4 write address handshake", vip_name);
+      end
+    end while (!(vif.awvalid && vif.awready));
+
+    vif.awvalid = 1'b0;
+    $display("[%0t] %s TX AW addr=%h beats=%0d id=%0d burst=%0d", $time, vip_name, addr, beat_count, id, burst);
+  endtask
+
+  // Write Data Channel - Send write data phase
+  task write_wchannel(input logic [DATA_WIDTH-1:0] data[],
+                      input logic [STRB_WIDTH-1:0] strb[]);
+    int unsigned beat_count;
+    int unsigned beat_idx;
+    int unsigned cycles;
+
+    beat_count = data.size();
+    assert (beat_count > 0)
+    else $fatal(1, "%s write_wchannel called with no data beats", vip_name);
+    assert (strb.size() >= beat_count)
+    else $fatal(1, "%s write_wchannel strb array too short", vip_name);
+
+    apply_pause();
+
     vif.wdata    = data[0];
     vif.wstrb    = strb[0];
     vif.wlast    = (beat_count == 1);
     vif.wuser    = '0;
     vif.wvalid   = 1'b1;
 
-    vif.bready   = 1'b1;
-
-    aw_done      = 1'b0;
     beat_idx     = 0;
     cycles       = 0;
 
@@ -205,10 +226,6 @@ class Axi4FullMasterVIP #(
       cycles++;
       if (cycles >= timeout_cycles) begin
         $fatal(1, "%s timed out waiting for AXI4 write data handshakes", vip_name);
-      end
-      if (!aw_done && vif.awvalid && vif.awready) begin
-        aw_done = 1'b1;
-        vif.awvalid = 1'b0;
       end
       if (vif.wvalid && vif.wready) begin
         beat_idx++;
@@ -223,6 +240,17 @@ class Axi4FullMasterVIP #(
       end
     end
 
+    $display("[%0t] %s TX W beats=%0d", $time, vip_name, beat_count);
+  endtask
+
+  // Write Response Channel - Receive write response phase
+  task write_bchannel(output logic [1:0] resp);
+    int unsigned cycles;
+
+    apply_pause();
+
+    vif.bready = 1'b1;
+
     cycles = 0;
     do begin
       @(posedge vif.aclk);
@@ -233,9 +261,27 @@ class Axi4FullMasterVIP #(
     end while (!(vif.bvalid && vif.bready));
 
     resp = vif.bresp;
-    $display("[%0t] %s TX WRITE_BURST addr=%h beats=%0d id=%0d burst=%0d bresp=%0h", $time,
-             vip_name, addr, beat_count, id, burst, resp);
+    $display("[%0t] %s RX B bresp=%0h", $time, vip_name, resp);
     vif.bready = 1'b0;
+  endtask
+
+  task write_burst(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data[],
+                   input logic [STRB_WIDTH-1:0] strb[], input logic [ID_WIDTH-1:0] id = '0,
+                   input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
+                   input logic [BURST_WIDTH-1:0] burst = 2'b01,
+                   input logic [PROT_WIDTH-1:0] prot = 3'b000, output logic [1:0] resp);
+    int unsigned beat_count;
+
+    beat_count = data.size();
+    assert (beat_count > 0)
+    else $fatal(1, "%s write_burst called with no data beats", vip_name);
+    assert (strb.size() >= beat_count)
+    else $fatal(1, "%s write_burst strb array too short", vip_name);
+
+    // Call the three channel APIs in sequence
+    write_awchannel(addr, beat_count, id, size, burst, prot);
+    write_wchannel(data, strb);
+    write_bchannel(resp);
   endtask
 
   // Read transaction
@@ -256,16 +302,17 @@ class Axi4FullMasterVIP #(
     end
   endtask
 
-  task read_burst(
-      input logic [ADDR_WIDTH-1:0] addr, input int unsigned beat_count,
-      ref logic [DATA_WIDTH-1:0] data[], ref logic [1:0] resp[], input logic [ID_WIDTH-1:0] id = '0,
-      input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
-      input logic [BURST_WIDTH-1:0] burst = 2'b01, input logic [PROT_WIDTH-1:0] prot = 3'b000);
-    int unsigned beat_idx;
+  // Read Address Channel - Send read address phase
+  task read_archannel(input logic [ADDR_WIDTH-1:0] addr,
+                      input int unsigned beat_count,
+                      input logic [ID_WIDTH-1:0] id = '0,
+                      input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
+                      input logic [BURST_WIDTH-1:0] burst = 2'b01,
+                      input logic [PROT_WIDTH-1:0] prot = 3'b000);
     int unsigned cycles;
 
     assert (beat_count > 0)
-    else $fatal(1, "%s read_burst called with no beats", vip_name);
+    else $fatal(1, "%s read_archannel called with beat_count=0", vip_name);
 
     apply_pause();
 
@@ -281,18 +328,45 @@ class Axi4FullMasterVIP #(
     vif.arregion = 4'b0000;
     vif.aruser   = '0;
     vif.arvalid  = 1'b1;
-    vif.rready   = 1'b1;
-    beat_idx     = 0;
-    cycles       = 0;
+
+    cycles = 0;
+    do begin
+      @(posedge vif.aclk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for AXI4 read address handshake", vip_name);
+      end
+    end while (!(vif.arvalid && vif.arready));
+
+    vif.arvalid = 1'b0;
+    $display("[%0t] %s TX AR addr=%h beats=%0d id=%0d burst=%0d", $time, vip_name, addr, beat_count, id, burst);
+  endtask
+
+  // Read Data Channel - Receive read data phase
+  task read_rchannel(ref logic [DATA_WIDTH-1:0] data[],
+                     ref logic [1:0] resp[],
+                     input logic [ID_WIDTH-1:0] id = '0);
+    int unsigned beat_count;
+    int unsigned beat_idx;
+    int unsigned cycles;
+
+    beat_count = data.size();
+    assert (beat_count > 0)
+    else $fatal(1, "%s read_rchannel called with no data beats", vip_name);
+    assert (resp.size() >= beat_count)
+    else $fatal(1, "%s read_rchannel resp array too short", vip_name);
+
+    apply_pause();
+
+    vif.rready = 1'b1;
+    beat_idx   = 0;
+    cycles     = 0;
 
     do begin
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
         $fatal(1, "%s timed out waiting for AXI4 read data", vip_name);
-      end
-      if (vif.arvalid && vif.arready) begin
-        vif.arvalid = 1'b0;
       end
       if (vif.rvalid && vif.rready) begin
         cycles = 0;
@@ -306,9 +380,22 @@ class Axi4FullMasterVIP #(
       end
     end while (beat_idx < beat_count);
 
-    $display("[%0t] %s RX READ_BURST addr=%h beats=%0d id=%0d burst=%0d", $time, vip_name, addr,
-             beat_count, id, burst);
+    $display("[%0t] %s RX R beats=%0d id=%0d", $time, vip_name, beat_count, id);
     vif.rready = 1'b0;
+  endtask
+
+  task read_burst(
+      input logic [ADDR_WIDTH-1:0] addr, input int unsigned beat_count,
+      ref logic [DATA_WIDTH-1:0] data[], ref logic [1:0] resp[], input logic [ID_WIDTH-1:0] id = '0,
+      input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
+      input logic [BURST_WIDTH-1:0] burst = 2'b01, input logic [PROT_WIDTH-1:0] prot = 3'b000);
+
+    assert (beat_count > 0)
+    else $fatal(1, "%s read_burst called with no beats", vip_name);
+
+    // Call the two channel APIs in sequence
+    read_archannel(addr, beat_count, id, size, burst, prot);
+    read_rchannel(data, resp, id);
   endtask
 
 endclass
