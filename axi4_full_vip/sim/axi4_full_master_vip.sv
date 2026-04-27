@@ -191,11 +191,11 @@ class Axi4FullMasterVIP #(
       end
     end while (!(vif.awready));
 
-    vif.awvalid <= 1'b0;
-    @(posedge vif.aclk);
-
     $display("[%0t] %s TX AW addr=%h beats=%0d id=%0d burst=%0d", $time, vip_name, addr,
              beat_count, id, burst);
+
+    vif.awvalid <= 1'b0;
+    @(posedge vif.aclk);
   endtask
 
   // Write Data Channel - Send write data phase
