@@ -5,25 +5,15 @@ from vunit import VUnit
 
 ROOT = Path(__file__).resolve().parents[1]
 
-argv = list(sys.argv[1:])
-
-vu = VUnit.from_argv(argv=argv, compile_builtins=False)
+vu = VUnit.from_argv(argv=list(sys.argv[1:]), compile_builtins=False)
 vu.add_verilog_builtins()
 
 lib = vu.add_library("lib")
-lib.add_source_files(
-    [
-        ROOT / "tb/apb_vip_tb.sv",
-    ],
-    include_dirs=[
-        (ROOT / "sim").as_posix(),
-        (ROOT / "tb").as_posix(),
-    ],
-)
+inc_dirs = [(ROOT / "sim").as_posix(), (ROOT / "tb").as_posix()]
 
-lib.set_sim_option(
-    name="modelsim.init_file.gui",
-    value=str(ROOT / "tb/apb_vip_tb.do"),
-)
+for tb in ["apb_vip_tb.sv", "apb_mem_vip_tb.sv"]:
+    lib.add_source_files([str(ROOT / "tb" / tb)], include_dirs=inc_dirs)
+
+lib.set_sim_option("modelsim.init_file.gui", str(ROOT / "tb/apb_vip_tb.do"))
 
 vu.main()
