@@ -218,15 +218,15 @@ module apb_vip_tb;
     end
 
     `TEST_CASE("Basic Write-Read") begin
-      slave_vip.configure_ready_delay(0);
+      slave_vip.configure_backpressure(1'b0);  // No backpressure
       for (int unsigned idx = 0; idx < STIMULUS_COUNT; idx++) begin
         run_write(idx);
         run_read(idx);
       end
     end
 
-    `TEST_CASE("Ready Delay Write-Read") begin
-      slave_vip.configure_ready_delay(3);
+    `TEST_CASE("Fixed Ready Delay 3") begin
+      slave_vip.configure_backpressure(1'b1, 3, 3);  // Fixed 3-cycle delay
       for (int unsigned idx = 0; idx < 8; idx++) begin
         run_write(idx + STIMULUS_COUNT);
         run_read(idx + STIMULUS_COUNT);
@@ -234,9 +234,38 @@ module apb_vip_tb;
     end
 
     `TEST_CASE("Error Response") begin
-      slave_vip.configure_ready_delay(0);
+      slave_vip.configure_backpressure(1'b0);  // No backpressure
       run_write_error(STIMULUS_COUNT + 8);
       run_read_error(STIMULUS_COUNT + 9);
+    end
+
+    `TEST_CASE("Backpressure Random 1-5") begin
+      slave_vip.configure_backpressure(1'b1, 1, 5);
+      for (int unsigned idx = 0; idx < 8; idx++) begin
+        run_write(idx + STIMULUS_COUNT + 10);
+        run_read(idx + STIMULUS_COUNT + 10);
+      end
+    end
+
+    `TEST_CASE("Backpressure Range 2-8") begin
+      slave_vip.configure_backpressure(1'b1, 2, 8);
+      for (int unsigned idx = 0; idx < 8; idx++) begin
+        run_write(idx + STIMULUS_COUNT + 20);
+        run_read(idx + STIMULUS_COUNT + 20);
+      end
+    end
+
+    `TEST_CASE("Backpressure Toggle") begin
+      // Toggle backpressure on/off between transactions
+      for (int unsigned idx = 0; idx < 6; idx++) begin
+        if (idx % 2 == 0) begin
+          slave_vip.configure_backpressure(1'b0);  // No backpressure
+        end else begin
+          slave_vip.configure_backpressure(1'b1, 1, 3);  // Random 1-3
+        end
+        run_write(idx + STIMULUS_COUNT + 30);
+        run_read(idx + STIMULUS_COUNT + 30);
+      end
     end
   end
 
