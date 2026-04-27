@@ -424,6 +424,53 @@ class Axi4FullSlaveVIP #(
     @(posedge vif.aclk);
   endtask
 
+  task automatic send_rchn(
+      input logic [DATA_WIDTH-1:0] data[],
+      input logic [  ID_WIDTH-1:0] id,
+      input logic [1:0]            resp = 2'b00);
+    int unsigned beat_count;
+    int unsigned beat_idx;
+    int unsigned cycles;
+
+    int unsigned stall;
+
+    beat_count = data.size();
+    assert (beat_count > 0)
+    else $fatal(1, "%s send_rchn called with no data beats", vip_name);
+
+    stall = get_r_stall();
+    repeat (stall) @(posedge vif.aclk);
+
+    vif.rdata  = data[0];
+    vif.rid    = id;
+    vif.rresp  = resp;
+    vif.rlast  = (beat_count == 1);
+    vif.ruser  = '0;
+    vif.rvalid = 1'b1;
+
+    beat_idx   = 0;
+    cycles     = 0;
+
+    while (beat_idx < beat_count) begin
+      @(posedge vif.aclk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for AXI4 write data handshakes", vip_name);
+      end
+      if (vif.rvalid && vif.rready) begin
+        beat_idx++;
+        if (beat_idx < beat_count) begin
+          vif.rdata = data[beat_idx];
+          vif.rlast = (beat_idx == (beat_count - 1));
+        end else begin
+          vif.rvalid = 1'b0;
+          vif.rlast  = 1'b0;
+        end
+      end
+    end
+
+  endtask
+
   // Send a single read data (R) beat
   task automatic send_read_data(
       input logic [  ID_WIDTH-1:0] id,
@@ -480,6 +527,8 @@ class Axi4FullSlaveVIP #(
     assert(data.size() >= beat_count)
     else $fatal(1, "%s respond_read data array too short (need %0d, got %0d)",
                vip_name, beat_count, data.size());
+
+    // send_rchn(data, id, resp);
 
     for (int i = 0; i < beat_count; i++) begin
       send_read_data(id, data[i], resp, (i == (beat_count - 1)));
