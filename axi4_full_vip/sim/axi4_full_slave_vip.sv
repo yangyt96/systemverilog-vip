@@ -334,7 +334,7 @@ class Axi4FullSlaveVIP #(
   endtask
 
   // Send write response (B)
-  task automatic send_write_response(
+  task automatic send_bchn(
       input logic [ID_WIDTH-1:0] id,
       input logic [1:0]          resp = 2'b00);
     int unsigned cycles;
@@ -376,7 +376,7 @@ class Axi4FullSlaveVIP #(
     logic [  PROT_WIDTH-1:0] prot;
 
     expect_write(addr, data, strb, id, len, size, burst, prot);
-    send_write_response(id, resp);
+    send_bchn(id, resp);
   endtask
 
   // ============ Read Channel Tasks ============
