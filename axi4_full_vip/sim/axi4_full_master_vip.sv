@@ -22,6 +22,7 @@ class Axi4FullMasterVIP #(
     int RUSER_WIDTH  = 1
 );
 
+  // Virtual interface handle
   virtual axi4_full_if #(
       .ADDR_WIDTH(ADDR_WIDTH),
       .DATA_WIDTH(DATA_WIDTH),
