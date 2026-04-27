@@ -212,7 +212,7 @@ class Axi4FullSlaveVIP #(
   // ============ Write Channel Tasks ============
 
   // Wait for and accept a write address (AW) transfer
-  task automatic accept_write_address(
+  task automatic recv_awchn(
       output logic [  ADDR_WIDTH-1:0] addr,
       output logic [    ID_WIDTH-1:0] id,
       output logic [   LEN_WIDTH-1:0] len,
@@ -227,13 +227,8 @@ class Axi4FullSlaveVIP #(
     stall = get_aw_stall();
     repeat (stall) @(posedge vif.aclk);
 
-    vif.awready = 1'b1;
-    @(posedge vif.aclk);
-
-    // Use while loop (check before wait) to avoid race condition in fork...join.
-    // If master already has awvalid asserted, handshake completes immediately.
     cycles = 0;
-    while (!(vif.awvalid && vif.awready)) begin
+    while (!(vif.awvalid)) begin
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
@@ -247,16 +242,14 @@ class Axi4FullSlaveVIP #(
     size   = vif.awsize;
     burst  = vif.awburst;
     prot   = vif.awprot;
+    vif.awready <= 1'b1;
+    @(posedge vif.aclk);
 
     $display("[%0t] %s RX AW addr=%h id=%0d len=%0d size=%0d burst=%0d",
              $time, vip_name, addr, id, len, size, burst);
 
-    // Use non-blocking assignment to release awready. This ensures that in
-    // fork...join, if slave executes first and releases awready, the master
-    // thread (which runs in the same time step) still sees awready=1 when
-    // it checks the handshake condition. The NBA takes effect at the end
-    // of the current time step, after all blocking assignments are done.
     vif.awready <= 1'b0;
+    @(posedge vif.aclk);
   endtask
 
   // Wait for and accept a single write data (W) beat
@@ -315,7 +308,7 @@ class Axi4FullSlaveVIP #(
     logic [STRB_WIDTH-1:0] beat_strb;
     bit                    beat_last;
 
-    accept_write_address(addr, id, len, size, burst, prot);
+    recv_awchn(addr, id, len, size, burst, prot);
     beat_count = int'(len) + 1;
 
     data = new[beat_count];
@@ -391,7 +384,7 @@ class Axi4FullSlaveVIP #(
   // ============ Read Channel Tasks ============
 
   // Wait for and accept a read address (AR) transfer
-  task automatic accept_read_address(
+  task automatic recv_archn(
       output logic [  ADDR_WIDTH-1:0] addr,
       output logic [    ID_WIDTH-1:0] id,
       output logic [   LEN_WIDTH-1:0] len,
@@ -406,13 +399,8 @@ class Axi4FullSlaveVIP #(
     stall = get_ar_stall();
     repeat (stall) @(posedge vif.aclk);
 
-    vif.arready = 1'b1;
-    @(posedge vif.aclk);
-
-    // Use while loop (check before wait) to avoid race condition in fork...join.
-    // If master already has arvalid asserted, handshake completes immediately.
     cycles = 0;
-    while (!(vif.arvalid && vif.arready)) begin
+    while (!(vif.arvalid)) begin
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
@@ -426,13 +414,14 @@ class Axi4FullSlaveVIP #(
     size  = vif.arsize;
     burst = vif.arburst;
     prot  = vif.arprot;
+    vif.arready = 1'b1;
+    @(posedge vif.aclk);
 
     $display("[%0t] %s RX AR addr=%h id=%0d len=%0d size=%0d burst=%0d",
              $time, vip_name, addr, id, len, size, burst);
 
-    // Use non-blocking assignment to release arready, ensuring master sees
-    // the handshake in its do...while loop even in fork...join race.
     vif.arready <= 1'b0;
+    @(posedge vif.aclk);
   endtask
 
   // Send a single read data (R) beat
@@ -485,7 +474,7 @@ class Axi4FullSlaveVIP #(
     logic [  PROT_WIDTH-1:0] prot;
     int unsigned beat_count;
 
-    accept_read_address(addr, id, len, size, burst, prot);
+    recv_archn(addr, id, len, size, burst, prot);
     beat_count = int'(len) + 1;
 
     assert(data.size() >= beat_count)

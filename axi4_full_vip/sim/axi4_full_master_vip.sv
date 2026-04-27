@@ -345,9 +345,11 @@ class Axi4FullMasterVIP #(
       if (cycles >= timeout_cycles) begin
         $fatal(1, "%s timed out waiting for AXI4 read address handshake", vip_name);
       end
-    end while (!(vif.arvalid && vif.arready));
+    end while (!(vif.arready));
 
-    vif.arvalid = 1'b0;
+    vif.arvalid <= 1'b0;
+    @(posedge vif.aclk);
+
     $display("[%0t] %s TX AR addr=%h beats=%0d id=%0d burst=%0d", $time, vip_name, addr,
              beat_count, id, burst);
   endtask
