@@ -245,22 +245,33 @@ class Axi4FullMasterVIP #(
   task write_bchannel(output logic [1:0] resp);
     int unsigned cycles;
 
-    apply_pause();
+    $display("[%0t] debug 0 bready=%b bvalid=%b", $time, vif.bready, vif.bvalid);
 
-    vif.bready = 1'b1;
+    apply_pause();
+    $display("[%0t] debug 1 bready=%b bvalid=%b", $time, vif.bready, vif.bvalid);
+
 
     cycles = 0;
-    do begin
+    while (!vif.bvalid) begin
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
         $fatal(1, "%s timed out waiting for AXI4 write response", vip_name);
       end
-    end while (!(vif.bvalid && vif.bready));
+    end
+
+    $display("[%0t] debug 2 bready=%b bvalid=%b", $time, vif.bready, vif.bvalid);
+
+
+    vif.bready = 1'b1;
+    @(posedge vif.aclk);
+    
+    $display("[%0t] debug 3 bready=%b bvalid=%b", $time, vif.bready, vif.bvalid);
 
     resp = vif.bresp;
     $display("[%0t] %s RX B bresp=%0h", $time, vip_name, resp);
     vif.bready <= 1'b0;
+    @(posedge vif.aclk);
   endtask
 
   task write_burst(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data[],
@@ -378,6 +389,7 @@ class Axi4FullMasterVIP #(
 
     $display("[%0t] %s RX R beats=%0d id=%0d", $time, vip_name, beat_count, id);
     vif.rready <= 1'b0;
+    @(posedge vif.aclk);
   endtask
 
   task read_burst(

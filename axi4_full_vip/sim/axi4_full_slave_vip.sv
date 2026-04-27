@@ -295,6 +295,7 @@ class Axi4FullSlaveVIP #(
     // Use non-blocking assignment to release wready, ensuring master sees
     // the handshake in its while loop even in fork...join race.
     vif.wready <= 1'b0;
+    @(posedge vif.aclk);
 
     $display("[%0t] %s RX W data=%h strb=%h last=%0b", $time, vip_name, data, strb, last);
   endtask
@@ -320,8 +321,13 @@ class Axi4FullSlaveVIP #(
     data = new[beat_count];
     strb = new[beat_count];
 
+    $display("[%0t] debug slave 0 beat_count=%0d", $time, beat_count);
+
     for (int i = 0; i < beat_count; i++) begin
       accept_write_data(beat_data, beat_strb, beat_last);
+
+      $display("[%0t] debug slave 1 itr=%0d", $time, i);
+
       data[i] = beat_data;
       strb[i] = beat_strb;
       if (beat_last && i < (beat_count - 1)) begin
@@ -451,19 +457,20 @@ class Axi4FullSlaveVIP #(
     // Use while loop (check before wait) to avoid race condition in fork...join.
     // If master already has rready asserted, handshake completes immediately.
     cycles = 0;
-    while (!(vif.rvalid && vif.rready)) begin
+    do begin
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
         $fatal(1, "%s timed out waiting for RREADY", vip_name);
       end
-    end
+    end while (!(vif.rvalid && vif.rready));
 
     $display("[%0t] %s TX R id=%0d data=%h resp=%0h last=%0b", $time, vip_name, id, data, resp, last);
 
     // Use non-blocking assignment to release rvalid, ensuring master sees
     // the handshake in its do...while loop even in fork...join race.
     vif.rvalid <= 1'b0;
+    @(posedge vif.aclk);
   endtask
 
   // Complete read transaction: accept address + send all data beats
