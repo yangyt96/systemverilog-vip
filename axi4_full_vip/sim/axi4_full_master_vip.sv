@@ -189,9 +189,11 @@ class Axi4FullMasterVIP #(
       if (cycles >= timeout_cycles) begin
         $fatal(1, "%s timed out waiting for AXI4 write address handshake", vip_name);
       end
-    end while (!(vif.awvalid && vif.awready));
+    end while (!(vif.awready));
 
-    vif.awvalid = 1'b0;
+    vif.awvalid <= 1'b0;
+    @(posedge vif.aclk);
+
     $display("[%0t] %s TX AW addr=%h beats=%0d id=%0d burst=%0d", $time, vip_name, addr,
              beat_count, id, burst);
   endtask
@@ -265,7 +267,7 @@ class Axi4FullMasterVIP #(
 
     vif.bready = 1'b1;
     @(posedge vif.aclk);
-    
+
     $display("[%0t] debug 3 bready=%b bvalid=%b", $time, vif.bready, vif.bvalid);
 
     resp = vif.bresp;
