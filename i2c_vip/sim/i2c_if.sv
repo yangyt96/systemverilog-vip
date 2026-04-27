@@ -3,6 +3,8 @@ interface i2c_if (
     input logic rstn
 );
 
+  // Use tri1 for I2C bus modeling (pullup when no driver active).
+  // ModelSim ASE may emit (vlog-2186) warning for tri1 inside interface — this is harmless.
   tri1  scl;
   tri1  sda;
 

@@ -193,28 +193,69 @@ module i2c_vip_tb;
     #(INTER_TRANSACTION_PAUSE);
   endtask
 
-  // --- Clock stretching test ---
-  task automatic run_clock_stretching();
+  // --- Clock stretching test (parameterized) ---
+  task automatic run_clock_stretching(input int unsigned stretch_cycles,
+                                      input int unsigned num_bytes = 1);
     logic [7:0] m_data[];
     logic [7:0] s_data[];
     bit address_ack;
     bit data_acks[];
     bit address_match;
 
-    m_data = new[1];
-    m_data[0] = 8'h77;
+    m_data = new[num_bytes];
+    for (int unsigned i = 0; i < num_bytes; i++) begin
+      m_data[i] = 8'(8'h77 + i);
+    end
 
     fork
       master_vip.write_bytes(SLAVE_ADDRESS, m_data, address_ack, data_acks);
-      slave_vip.expect_write_bytes(1, s_data, address_match, .stretch_after_addr(50));
+      slave_vip.expect_write_bytes(num_bytes, s_data, address_match,
+                                   .stretch_after_addr(stretch_cycles));
     join
 
-    assert(address_ack) else $error("I2C clock-stretch write address NACK");
-    assert(address_match) else $error("I2C clock-stretch write address mismatch");
-    assert(s_data.size() == 1 && s_data[0] == 8'h77)
-      else $error("I2C clock-stretch write data mismatch");
+    assert(address_ack) else $error("I2C clock-stretch(%0d,%0d) address NACK",
+                                     stretch_cycles, num_bytes);
+    assert(address_match) else $error("I2C clock-stretch(%0d,%0d) address mismatch",
+                                      stretch_cycles, num_bytes);
+    assert(s_data.size() == num_bytes) else $error("I2C clock-stretch(%0d,%0d) count mismatch",
+                                                    stretch_cycles, num_bytes);
+    for (int unsigned i = 0; i < num_bytes; i++) begin
+      assert(s_data[i] == m_data[i])
+        else $error("I2C clock-stretch(%0d,%0d) byte[%0d] mismatch exp=%h got=%h",
+                    stretch_cycles, num_bytes, i, m_data[i], s_data[i]);
+    end
 
-    $display("[%0t] Clock stretching PASSED", $time);
+    $display("[%0t] Clock stretching PASSED (stretch=%0d, bytes=%0d)", $time,
+             stretch_cycles, num_bytes);
+    #(INTER_TRANSACTION_PAUSE);
+  endtask
+
+  // --- Clock stretching during read (uses respond_read_bytes for stretch support) ---
+  task automatic run_clock_stretching_read(input int unsigned stretch_cycles);
+    logic [7:0] s_data[];
+    logic [7:0] m_data[];
+    bit address_ack;
+    bit address_match;
+    bit master_acks[];
+
+    s_data = new[1];
+    s_data[0] = 8'hA5;
+    m_data = new[1];
+
+    fork
+      master_vip.read_bytes(SLAVE_ADDRESS, m_data, address_ack);
+      slave_vip.respond_read_bytes(1, s_data, address_match, master_acks,
+                                   .stretch_after_addr(stretch_cycles));
+    join
+
+    assert(address_ack) else $error("I2C clock-stretch read(%0d) address NACK", stretch_cycles);
+    assert(address_match) else $error("I2C clock-stretch read(%0d) address mismatch", stretch_cycles);
+    assert(m_data.size() == 1 && m_data[0] == 8'hA5)
+      else $error("I2C clock-stretch read(%0d) data mismatch", stretch_cycles);
+    assert(master_acks.size() == 1 && !master_acks[0])
+      else $error("I2C clock-stretch read(%0d) expected final NACK", stretch_cycles);
+
+    $display("[%0t] Clock stretching read PASSED (stretch=%0d)", $time, stretch_cycles);
     #(INTER_TRANSACTION_PAUSE);
   endtask
 
@@ -328,8 +369,24 @@ module i2c_vip_tb;
       run_multi_byte_read();
     end
 
-    `TEST_CASE("ClockStretching") begin
-      run_clock_stretching();
+    `TEST_CASE("ClockStretching50") begin
+      run_clock_stretching(50);
+    end
+
+    `TEST_CASE("ClockStretching10") begin
+      run_clock_stretching(10);
+    end
+
+    `TEST_CASE("ClockStretching200") begin
+      run_clock_stretching(200);
+    end
+
+    `TEST_CASE("ClockStretchMultiByte") begin
+      run_clock_stretching(50, 3);
+    end
+
+    `TEST_CASE("ClockStretchRead") begin
+      run_clock_stretching_read(50);
     end
 
     `TEST_CASE("RepeatedStart") begin
