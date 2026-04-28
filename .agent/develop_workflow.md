@@ -34,7 +34,7 @@
 ```
 
 1. **读取项目文档** — 新 AI 窗口首先读取以下文档以建立上下文：
-   - [`plans/sv_light_vip_workflow.md`](plans/sv_light_vip_workflow.md) — 本工作流文档（了解流程和规范）
+   - [`.agent/develop_workflow.md`](.agent/develop_workflow.md) — 本工作流文档（了解流程和规范）
    - [`API_REFERENCE.md`](API_REFERENCE.md) — API 参考文档（了解所有 VIP 的 API 规范）
    - 目标 VIP 的 [`doc/README.md`](.) — 具体 VIP 的文档
 
