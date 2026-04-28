@@ -1,0 +1,9 @@
+# sv-light-vip dependencies
+# ==========================
+# Install: pip install -r requirements.txt
+#
+# For MCP Server (AI agent integration):
+mcp>=1.0.0
+#
+# For VUnit integration (optional, only needed when using VUnit):
+# vunit-hdl>=4.0.0

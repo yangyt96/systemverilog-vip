@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sv-light-vip"
+version = "0.1.0"
+description = "Lightweight SystemVerilog Verification IPs — Python integration package"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+
+[project.urls]
+Repository = "https://github.com/yyangtse/sv-light-vip"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"sv_light_vip" = ["py.typed"]

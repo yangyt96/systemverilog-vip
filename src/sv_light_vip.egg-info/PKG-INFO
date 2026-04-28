@@ -1,3 +1,14 @@
+Metadata-Version: 2.4
+Name: sv-light-vip
+Version: 0.1.0
+Summary: Lightweight SystemVerilog Verification IPs — Python integration package
+License: MIT
+Project-URL: Repository, https://github.com/yyangtse/sv-light-vip
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Dynamic: license-file
+
 # sv-light-vip
 **Lightweight, class‑based SystemVerilog Verification IPs (UVM‑free)**
 
@@ -105,124 +116,6 @@ docker run -it --rm \
   -w /work \
   modelsim:20.1
 ```
-
----
-
-## 🐍 Python Package
-
-sv-light-vip provides a Python package (`sv-light-vip`) for programmatic VIP management and VUnit integration.
-
-### Installation
-
-```bash
-pip install -e .                     # Editable install from repo root
-pip install -r requirements.txt      # Install MCP dependency (optional)
-```
-
-### VUnit Integration
-
-Add VIP sources to your VUnit testbench with a single function call:
-
-```python
-from sv_light_vip import add_vip_to_vunit
-from vunit import VUnit
-
-vu = VUnit.from_argv()
-lib = vu.add_library("work")
-
-# Add a single VIP
-add_vip_to_vunit(vu, lib, "apb_vip")
-
-# Or add multiple VIPs at once
-add_vip_sources(vu, lib, ["apb_vip", "uart_vip", "i2c_vip"])
-```
-
-### Query VIP Metadata
-
-```python
-from sv_light_vip import list_vips, get_vip_info, get_vip_path
-
-# List all available VIPs
-for vip in list_vips():
-    print(f"{vip.name}: {vip.description}")
-
-# Get detailed info
-info = get_vip_info("apb_vip")
-print(f"Path: {get_vip_path(info.name)}")
-for comp in info.components:
-    print(f"  Component: {comp.name} ({comp.comp_type})")
-```
-
-### API Reference
-
-| Function | Description |
-|----------|-------------|
-| `list_vips()` | Return all VIPs as `VipInfo` objects |
-| `get_vip_info(name)` | Get `VipInfo` for a specific VIP |
-| `get_vip_path(name)` | Get absolute path to VIP root directory |
-| `get_vip_sim_path(name)` | Get absolute path to VIP `sim/` directory |
-| `add_vip_to_vunit(vu, lib, name)` | Add VIP sources to a VUnit library |
-| `add_vip_sources(vu, lib, names)` | Add multiple VIPs to a VUnit library |
-
----
-
-## 🤖 MCP Server (AI Agent Integration)
-
-sv-light-vip includes an **MCP (Model Context Protocol) Server** that allows AI coding assistants to query VIP metadata, generate testbench templates, and produce VUnit run scripts.
-
-### What is MCP?
-
-MCP (Model Context Protocol) is an open standard that enables AI models to interact with external tools and data sources. The sv-light-vip MCP Server exposes VIP information as tools that AI assistants can call dynamically.
-
-### Running the Server
-
-```bash
-# stdio transport (for Claude Desktop, Cursor, etc.)
-python mcp_server/server.py
-
-# SSE transport (for web-based tools)
-python mcp_server/server.py --transport sse --port 8000
-```
-
-### Available Tools
-
-| Tool | Description |
-|------|-------------|
-| `list_vips` | List all available VIPs with their components |
-| `get_vip_info` | Get detailed VIP information (components, parameters, paths) |
-| `get_vip_api` | Get API method signatures for a VIP component |
-| `get_vip_interface` | Get interface signal definitions |
-| `generate_testbench` | Generate a SystemVerilog testbench template |
-| `generate_run_py` | Generate a VUnit `run.py` script |
-
-### Example: Generate a Testbench
-
-An AI assistant can call the MCP tools to generate testbench code:
-
-```
-User: "Create a testbench for APB VIP with a memory controller DUT"
-
-AI Assistant: [calls generate_testbench(vip_name="apb_vip", dut_name="apb_mem_ctrl")]
-→ Returns a complete SystemVerilog testbench template with VIP instantiation,
-  clock/reset generation, and test sequence skeleton.
-```
-
-### Configuration for AI Assistants
-
-To use the MCP Server with Claude Desktop or Cursor, add to your MCP configuration:
-
-```json
-{
-  "mcpServers": {
-    "sv-light-vip": {
-      "command": "python",
-      "args": ["/path/to/sv-light-vip/mcp_server/server.py"]
-    }
-  }
-}
-```
-
----
 
 ## 🧩 Project Philosophy
 Human‑designed, AI‑assisted: AI tools were used to accelerate boilerplate and documentation, but all protocol behavior, architecture, and verification methodology are manually reviewed and engineered.
