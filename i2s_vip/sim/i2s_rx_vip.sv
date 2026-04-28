@@ -19,8 +19,8 @@ class I2SRxVIP #(
   endfunction
 
   // API: receive one stereo I2S frame, MSB first.
-  task automatic receive(output logic [SAMPLE_WIDTH-1:0] left_sample,
-                         output logic [SAMPLE_WIDTH-1:0] right_sample, output bit frame_error);
+  task automatic recv_frame(output logic [SAMPLE_WIDTH-1:0] left_sample,
+                            output logic [SAMPLE_WIDTH-1:0] right_sample, output bit frame_error);
     left_sample  = '0;
     right_sample = '0;
     frame_error  = 1'b0;

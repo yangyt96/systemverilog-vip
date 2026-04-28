@@ -95,8 +95,8 @@ module apb_vip_tb;
     exp_prot = PROT_WIDTH'(index);
 
     fork
-      master_vip.write(exp_addr, exp_data, exp_strb, master_slverr, exp_prot);
-      slave_vip.expect_write(rx_addr, rx_data, rx_strb, rx_prot, 1'b0);
+      master_vip.write_req(exp_addr, exp_data, exp_strb, master_slverr, exp_prot);
+      slave_vip.write_resp(rx_addr, rx_data, rx_strb, rx_prot, 1'b0);
     join
 
     assert(!master_slverr) else $error("APB write returned error at %0d", index);
@@ -122,8 +122,8 @@ module apb_vip_tb;
     exp_prot = PROT_WIDTH'(index + 3);
 
     fork
-      master_vip.read(exp_addr, master_data, master_slverr, exp_prot);
-      slave_vip.respond_read(exp_data, rx_addr, rx_prot, 1'b0);
+      master_vip.read_req(exp_addr, master_data, master_slverr, exp_prot);
+      slave_vip.read_resp(exp_data, rx_addr, rx_prot, 1'b0);
     join
 
     assert(!master_slverr) else $error("APB read returned error at %0d", index);
@@ -152,8 +152,8 @@ module apb_vip_tb;
     exp_prot = PROT_WIDTH'(index);
 
     fork
-      master_vip.write(exp_addr, exp_data, exp_strb, master_slverr, exp_prot);
-      slave_vip.expect_write(rx_addr, rx_data, rx_strb, rx_prot, 1'b1);
+      master_vip.write_req(exp_addr, exp_data, exp_strb, master_slverr, exp_prot);
+      slave_vip.write_resp(rx_addr, rx_data, rx_strb, rx_prot, 1'b1);
     join
 
     assert(master_slverr) else $error("APB write did not return expected error at %0d", index);
@@ -179,8 +179,8 @@ module apb_vip_tb;
     exp_prot = PROT_WIDTH'(index + 3);
 
     fork
-      master_vip.read(exp_addr, master_data, master_slverr, exp_prot);
-      slave_vip.respond_read(exp_data, rx_addr, rx_prot, 1'b1);
+      master_vip.read_req(exp_addr, master_data, master_slverr, exp_prot);
+      slave_vip.read_resp(exp_data, rx_addr, rx_prot, 1'b1);
     join
 
     assert(master_slverr) else $error("APB read did not return expected error at %0d", index);

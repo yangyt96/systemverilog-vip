@@ -136,8 +136,8 @@ class I2CMasterVIP #(
   endtask
 
   // API: single-byte write (backward compatible)
-  task automatic write_byte(input logic [6:0] address, input logic [7:0] data,
-                            output bit address_ack, output bit data_ack);
+  task automatic send_byte(input logic [6:0] address, input logic [7:0] data,
+                           output bit address_ack, output bit data_ack);
     wait_reset_release();
     start_condition();
     write_raw_byte({address, 1'b0}, address_ack);
@@ -149,7 +149,7 @@ class I2CMasterVIP #(
   endtask
 
   // API: single-byte read (backward compatible)
-  task automatic read_byte(input logic [6:0] address, output logic [7:0] data,
+  task automatic recv_byte(input logic [6:0] address, output logic [7:0] data,
                            output bit address_ack);
     wait_reset_release();
     start_condition();
@@ -163,9 +163,9 @@ class I2CMasterVIP #(
 
   // API: multi-byte write with optional repeated start
   // When use_repeated_start=1, a repeated start is sent instead of start+stop around the address phase.
-  task automatic write_bytes(input logic [6:0] address, input logic [7:0] data[],
-                             output bit address_ack, output bit data_acks[],
-                             input bit use_repeated_start = 1'b0);
+  task automatic send_bytes(input logic [6:0] address, input logic [7:0] data[],
+                            output bit address_ack, output bit data_acks[],
+                            input bit use_repeated_start = 1'b0);
     bit ack;
 
     wait_reset_release();
@@ -192,7 +192,7 @@ class I2CMasterVIP #(
 
   // API: multi-byte read with optional repeated start
   // NACK is sent on the last byte; all preceding bytes are ACKed.
-  task automatic read_bytes(input logic [6:0] address, ref logic [7:0] data[],
+  task automatic recv_bytes(input logic [6:0] address, ref logic [7:0] data[],
                             output bit address_ack, input bit use_repeated_start = 1'b0);
     wait_reset_release();
 

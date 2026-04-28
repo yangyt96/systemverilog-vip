@@ -68,7 +68,7 @@ class UartTxVIP #(
   endtask
 
   // API: transmit one UART frame, 8N1 by default, LSB first.
-  task transmit(input logic [DATA_BITS-1:0] data);
+  task send_frame(input logic [DATA_BITS-1:0] data);
     int unsigned cycles;
     int unsigned pause_cycles;
 

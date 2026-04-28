@@ -44,8 +44,8 @@ module spi_vip_tb;
     slave_tx  = build_slave_data(index);
 
     fork
-      master_vip.transfer(master_tx, master_rx);
-      slave_vip.transfer(slave_tx, slave_rx);
+      master_vip.send_recv(master_tx, master_rx);
+      slave_vip.send_recv(slave_tx, slave_rx);
     join
 
     assert(master_rx == slave_tx)
@@ -63,7 +63,7 @@ module spi_vip_tb;
     logic [DATA_BITS-1:0] rx_data;
 
     for (int unsigned idx = start_index; idx < (start_index + transfer_count); idx++) begin
-      master_vip.transfer(build_master_data(idx), rx_data);
+      master_vip.send_recv(build_master_data(idx), rx_data);
       assert(rx_data == build_slave_data(idx))
         else $error("SPI continuous master RX mismatch at stimulus %0d exp=%h got=%h",
                     idx, build_slave_data(idx), rx_data);
@@ -78,7 +78,7 @@ module spi_vip_tb;
 
     observed_count = 0;
     for (int unsigned idx = start_index; idx < (start_index + transfer_count); idx++) begin
-      slave_vip.transfer(build_slave_data(idx), rx_data);
+      slave_vip.send_recv(build_slave_data(idx), rx_data);
       observed_count++;
       assert(rx_data == build_master_data(idx))
         else $error("SPI continuous slave RX mismatch at stimulus %0d exp=%h got=%h",
@@ -142,7 +142,7 @@ module spi_vip_tb;
       begin
         slave_aborted = 1'b0;
         fork
-          slave_vip.transfer(slave_tx, slave_rx);
+          slave_vip.send_recv(slave_tx, slave_rx);
           begin
             // Wait for CS to go high (abort condition)
             @(posedge spi_link.cs_n);

@@ -42,8 +42,8 @@ module i2s_vip_tb;
     exp_right = build_right(index);
 
     fork
-      tx_vip.transmit(exp_left, exp_right);
-      rx_vip.receive(rx_left, rx_right, frame_error);
+      tx_vip.send_frame(exp_left, exp_right);
+      rx_vip.recv_frame(rx_left, rx_right, frame_error);
     join
 
     assert(!frame_error) else $error("I2S frame error at stimulus %0d", index);
@@ -58,7 +58,7 @@ module i2s_vip_tb;
   task automatic drive_frames(input int unsigned start_index,
                               input int unsigned frame_count);
     for (int unsigned idx = start_index; idx < (start_index + frame_count); idx++) begin
-      tx_vip.transmit(build_left(idx), build_right(idx));
+      tx_vip.send_frame(build_left(idx), build_right(idx));
       #(INTER_TRANSACTION_PAUSE);
     end
   endtask
@@ -72,7 +72,7 @@ module i2s_vip_tb;
 
     observed_count = 0;
     for (int unsigned idx = start_index; idx < (start_index + frame_count); idx++) begin
-      rx_vip.receive(rx_left, rx_right, frame_error);
+      rx_vip.recv_frame(rx_left, rx_right, frame_error);
       observed_count++;
       assert(!frame_error) else $error("I2S continuous frame error at stimulus %0d", idx);
       assert(rx_left == build_left(idx))
@@ -138,8 +138,8 @@ module i2s_vip_tb;
       exp_left  = '0;
       exp_right = '0;
       fork
-        tx_vip.transmit(exp_left, exp_right);
-        rx_vip.receive(rx_left, rx_right, frame_error);
+        tx_vip.send_frame(exp_left, exp_right);
+        rx_vip.recv_frame(rx_left, rx_right, frame_error);
       join
       assert(!frame_error) else $error("I2S boundary: frame error on all-zeros");
       assert(rx_left == exp_left)
@@ -152,8 +152,8 @@ module i2s_vip_tb;
       exp_left  = '1;
       exp_right = '1;
       fork
-        tx_vip.transmit(exp_left, exp_right);
-        rx_vip.receive(rx_left, rx_right, frame_error);
+        tx_vip.send_frame(exp_left, exp_right);
+        rx_vip.recv_frame(rx_left, rx_right, frame_error);
       join
       assert(!frame_error) else $error("I2S boundary: frame error on all-ones");
       assert(rx_left == exp_left)
@@ -166,8 +166,8 @@ module i2s_vip_tb;
       exp_left  = SAMPLE_WIDTH'({8'hAA, 8'hAA});
       exp_right = SAMPLE_WIDTH'({8'h55, 8'h55});
       fork
-        tx_vip.transmit(exp_left, exp_right);
-        rx_vip.receive(rx_left, rx_right, frame_error);
+        tx_vip.send_frame(exp_left, exp_right);
+        rx_vip.recv_frame(rx_left, rx_right, frame_error);
       join
       assert(!frame_error) else $error("I2S boundary: frame error on alternating");
       assert(rx_left == exp_left)
@@ -180,8 +180,8 @@ module i2s_vip_tb;
       exp_left  = SAMPLE_WIDTH'(16'hDEAD);
       exp_right = '0;
       fork
-        tx_vip.transmit(exp_left, exp_right);
-        rx_vip.receive(rx_left, rx_right, frame_error);
+        tx_vip.send_frame(exp_left, exp_right);
+        rx_vip.recv_frame(rx_left, rx_right, frame_error);
       join
       assert(!frame_error) else $error("I2S boundary: frame error on left-only");
       assert(rx_left == exp_left)
@@ -194,8 +194,8 @@ module i2s_vip_tb;
       exp_left  = '0;
       exp_right = SAMPLE_WIDTH'(16'hBEEF);
       fork
-        tx_vip.transmit(exp_left, exp_right);
-        rx_vip.receive(rx_left, rx_right, frame_error);
+        tx_vip.send_frame(exp_left, exp_right);
+        rx_vip.recv_frame(rx_left, rx_right, frame_error);
       join
       assert(!frame_error) else $error("I2S boundary: frame error on right-only");
       assert(rx_left == exp_left)
@@ -227,8 +227,8 @@ module i2s_vip_tb;
         exp_right = build_right(idx + 100);
 
         fork
-          fast_tx.transmit(exp_left, exp_right);
-          fast_rx.receive(rx_left, rx_right, frame_error);
+          fast_tx.send_frame(exp_left, exp_right);
+          fast_rx.recv_frame(rx_left, rx_right, frame_error);
         join
 
         assert(!frame_error) else $error("I2S fast BCLK: frame error at %0d", idx);

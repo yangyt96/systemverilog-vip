@@ -43,8 +43,8 @@ module i2c_vip_tb;
     master_data = build_master_data(index);
 
     fork
-      master_vip.write_byte(SLAVE_ADDRESS, master_data, address_ack, data_ack);
-      slave_vip.expect_write(slave_data, address_match);
+      master_vip.send_byte(SLAVE_ADDRESS, master_data, address_ack, data_ack);
+      slave_vip.recv_byte(slave_data, address_match);
     join
 
     assert(address_ack) else $error("I2C write address NACK at stimulus %0d", index);
@@ -67,8 +67,8 @@ module i2c_vip_tb;
     slave_data = build_slave_data(index);
 
     fork
-      master_vip.read_byte(SLAVE_ADDRESS, master_data, address_ack);
-      slave_vip.respond_read(slave_data, address_match, master_ack);
+      master_vip.recv_byte(SLAVE_ADDRESS, master_data, address_ack);
+      slave_vip.send_byte(slave_data, address_match, master_ack);
     join
 
     assert(address_ack) else $error("I2C read address NACK at stimulus %0d", index);
@@ -91,8 +91,8 @@ module i2c_vip_tb;
     master_data = 8'hA5;
 
     fork
-      master_vip.write_byte(SLAVE_ADDRESS ^ 7'h01, master_data, address_ack, data_ack);
-      slave_vip.expect_write(slave_data, address_match);
+      master_vip.send_byte(SLAVE_ADDRESS ^ 7'h01, master_data, address_ack, data_ack);
+      slave_vip.recv_byte(slave_data, address_match);
     join
 
     assert(!address_ack) else $error("I2C wrong-address write unexpectedly ACKed address");
@@ -108,7 +108,7 @@ module i2c_vip_tb;
     bit address_ack;
 
     for (int unsigned idx = start_index; idx < (start_index + transfer_count); idx++) begin
-      master_vip.read_byte(SLAVE_ADDRESS, master_data, address_ack);
+      master_vip.recv_byte(SLAVE_ADDRESS, master_data, address_ack);
       assert(address_ack) else $error("I2C continuous read address NACK at stimulus %0d", idx);
       assert(master_data == build_slave_data(idx))
         else $error("I2C continuous read mismatch at stimulus %0d exp=%h got=%h",
@@ -125,7 +125,7 @@ module i2c_vip_tb;
 
     observed_count = 0;
     for (int unsigned idx = start_index; idx < (start_index + transfer_count); idx++) begin
-      slave_vip.respond_read(build_slave_data(idx), address_match, master_ack);
+      slave_vip.send_byte(build_slave_data(idx), address_match, master_ack);
       observed_count++;
       assert(address_match) else $error("I2C continuous read slave address mismatch at stimulus %0d", idx);
       assert(!master_ack) else $error("I2C continuous read expected final NACK at stimulus %0d", idx);
@@ -146,8 +146,8 @@ module i2c_vip_tb;
     m_data[2] = 8'hBE;
 
     fork
-      master_vip.write_bytes(SLAVE_ADDRESS, m_data, address_ack, data_acks);
-      slave_vip.expect_write_bytes(3, s_data, address_match);
+      master_vip.send_bytes(SLAVE_ADDRESS, m_data, address_ack, data_acks);
+      slave_vip.recv_bytes(3, s_data, address_match);
     join
 
     assert(address_ack) else $error("I2C multi-byte write address NACK");
@@ -177,8 +177,8 @@ module i2c_vip_tb;
     m_data = new[3];
 
     fork
-      master_vip.read_bytes(SLAVE_ADDRESS, m_data, address_ack);
-      slave_vip.respond_read_bytes(3, s_data, address_match, master_acks);
+      master_vip.recv_bytes(SLAVE_ADDRESS, m_data, address_ack);
+      slave_vip.send_bytes(3, s_data, address_match, master_acks);
     join
 
     assert(address_ack) else $error("I2C multi-byte read address NACK");
@@ -208,9 +208,9 @@ module i2c_vip_tb;
     end
 
     fork
-      master_vip.write_bytes(SLAVE_ADDRESS, m_data, address_ack, data_acks);
-      slave_vip.expect_write_bytes(num_bytes, s_data, address_match,
-                                   .stretch_after_addr(stretch_cycles));
+      master_vip.send_bytes(SLAVE_ADDRESS, m_data, address_ack, data_acks);
+      slave_vip.recv_bytes(num_bytes, s_data, address_match,
+                           .stretch_after_addr(stretch_cycles));
     join
 
     assert(address_ack) else $error("I2C clock-stretch(%0d,%0d) address NACK",
@@ -243,9 +243,9 @@ module i2c_vip_tb;
     m_data = new[1];
 
     fork
-      master_vip.read_bytes(SLAVE_ADDRESS, m_data, address_ack);
-      slave_vip.respond_read_bytes(1, s_data, address_match, master_acks,
-                                   .stretch_after_addr(stretch_cycles));
+      master_vip.recv_bytes(SLAVE_ADDRESS, m_data, address_ack);
+      slave_vip.send_bytes(1, s_data, address_match, master_acks,
+                           .stretch_after_addr(stretch_cycles));
     join
 
     assert(address_ack) else $error("I2C clock-stretch read(%0d) address NACK", stretch_cycles);
@@ -280,9 +280,9 @@ module i2c_vip_tb;
     // Write with repeated start, then read with repeated start
     fork
       begin
-        master_vip.write_bytes(SLAVE_ADDRESS, write_data, w_addr_ack, w_data_acks, .use_repeated_start(1'b1));
+        master_vip.send_bytes(SLAVE_ADDRESS, write_data, w_addr_ack, w_data_acks, .use_repeated_start(1'b1));
       end
-      slave_vip.expect_write_bytes(2, s_write_data, w_address_match);
+      slave_vip.recv_bytes(2, s_write_data, w_address_match);
     join
 
     assert(w_addr_ack) else $error("I2C repeated-start write address NACK");
@@ -294,8 +294,8 @@ module i2c_vip_tb;
 
     read_data = new[2];
     fork
-      master_vip.read_bytes(SLAVE_ADDRESS, read_data, r_addr_ack, .use_repeated_start(1'b1));
-      slave_vip.respond_read_bytes(2, s_read_data, r_address_match, r_master_acks);
+      master_vip.recv_bytes(SLAVE_ADDRESS, read_data, r_addr_ack, .use_repeated_start(1'b1));
+      slave_vip.send_bytes(2, s_read_data, r_address_match, r_master_acks);
     join
 
     assert(r_addr_ack) else $error("I2C repeated-start read address NACK");

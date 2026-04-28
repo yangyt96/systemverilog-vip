@@ -131,7 +131,7 @@ module apb_mem_vip_tb;
     strb = build_strb(index);
     prot = PROT_WIDTH'(index);
 
-    master_vip.write(addr, data, strb, slverr, prot);
+    master_vip.write_req(addr, data, strb, slverr, prot);
     assert(!slverr) else $error("APB mem write returned error at %0d", index);
   endtask
 
@@ -146,7 +146,7 @@ module apb_mem_vip_tb;
     strb          = build_strb(index);
     expected_data = apply_wstrb(build_data(index), strb);
 
-    master_vip.read(addr, master_data, slverr, PROT_WIDTH'(index));
+    master_vip.read_req(addr, master_data, slverr, PROT_WIDTH'(index));
     assert(!slverr) else $error("APB mem read returned error at %0d", index);
     assert(master_data == expected_data)
       else $error("APB mem read data mismatch at %0d exp=%h got=%h", index, expected_data, master_data);
@@ -160,7 +160,7 @@ module apb_mem_vip_tb;
     addr = build_addr(index);
     data = DATA_WIDTH'(32'hDEAD_0000 | index);
 
-    master_vip.write(addr, data, '1, slverr, '0);
+    master_vip.write_req(addr, data, '1, slverr, '0);
     assert(!slverr) else $error("APB mem pattern write returned error at %0d", index);
   endtask
 
@@ -173,7 +173,7 @@ module apb_mem_vip_tb;
     addr          = build_addr(index);
     expected_data = DATA_WIDTH'(32'hDEAD_0000 | index);
 
-    master_vip.read(addr, master_data, slverr, '0);
+    master_vip.read_req(addr, master_data, slverr, '0);
     assert(!slverr) else $error("APB mem pattern read returned error at %0d", index);
     assert(master_data == expected_data)
       else $error("APB mem pattern read data mismatch at %0d exp=%h got=%h", index, expected_data, master_data);
@@ -250,27 +250,27 @@ module apb_mem_vip_tb;
 
       addr    = '0;
       wr_data = 32'hAABBCCDD;
-      master_vip.write(addr, wr_data, '1, slverr, '0);
+      master_vip.write_req(addr, wr_data, '1, slverr, '0);
       assert(!slverr) else $error("Mem VIP boundary write at 0 returned error");
-      master_vip.read(addr, rd_data, slverr, '0);
+      master_vip.read_req(addr, rd_data, slverr, '0);
       assert(!slverr) else $error("Mem VIP boundary read at 0 returned error");
       assert(rd_data == wr_data)
         else $error("Mem VIP boundary read at 0 mismatch exp=%h got=%h", wr_data, rd_data);
 
       addr    = ADDR_WIDTH'(MEM_BYTES - STRB_WIDTH);
       wr_data = 32'h11223344;
-      master_vip.write(addr, wr_data, '1, slverr, '0);
+      master_vip.write_req(addr, wr_data, '1, slverr, '0);
       assert(!slverr) else $error("Mem VIP boundary write near end returned error");
-      master_vip.read(addr, rd_data, slverr, '0);
+      master_vip.read_req(addr, rd_data, slverr, '0);
       assert(!slverr) else $error("Mem VIP boundary read near end returned error");
       assert(rd_data == wr_data)
         else $error("Mem VIP boundary read near end mismatch exp=%h got=%h", wr_data, rd_data);
 
       addr    = ADDR_WIDTH'(MEM_BYTES + 16'h100);
       wr_data = 32'h55667788;
-      master_vip.write(addr, wr_data, '1, slverr, '0);
+      master_vip.write_req(addr, wr_data, '1, slverr, '0);
       assert(!slverr) else $error("Mem VIP boundary write wrapped returned error");
-      master_vip.read(addr, rd_data, slverr, '0);
+      master_vip.read_req(addr, rd_data, slverr, '0);
       assert(!slverr) else $error("Mem VIP boundary read wrapped returned error");
       assert(rd_data == wr_data)
         else $error("Mem VIP boundary read wrapped mismatch exp=%h got=%h", wr_data, rd_data);
@@ -289,10 +289,10 @@ module apb_mem_vip_tb;
         strb    = STRB_WIDTH'($urandom);
         if (strb == '0) strb = '1;  // Ensure at least one byte strobe
 
-        master_vip.write(addr, wr_data, strb, slverr, '0);
+        master_vip.write_req(addr, wr_data, strb, slverr, '0);
         assert(!slverr) else $error("Mem VIP random write returned error at iter %0d", iter);
 
-        master_vip.read(addr, rd_data, slverr, '0);
+        master_vip.read_req(addr, rd_data, slverr, '0);
         assert(!slverr) else $error("Mem VIP random read returned error at iter %0d", iter);
 
         // Apply strobe mask to expected data
@@ -321,10 +321,10 @@ module apb_mem_vip_tb;
         addr    = build_addr(idx);
         wr_data = build_data(idx);
 
-        master_vip.write(addr, wr_data, '1, slverr, '0);
+        master_vip.write_req(addr, wr_data, '1, slverr, '0);
         assert(!slverr) else $error("Mem VIP b2b write returned error at %0d", idx);
 
-        master_vip.read(addr, rd_data, slverr, '0);
+        master_vip.read_req(addr, rd_data, slverr, '0);
         assert(!slverr) else $error("Mem VIP b2b read returned error at %0d", idx);
         assert(rd_data == wr_data)
           else $error("Mem VIP b2b mismatch at %0d exp=%h got=%h", idx, wr_data, rd_data);
@@ -340,7 +340,7 @@ module apb_mem_vip_tb;
       // Verify memory is zero after initial reset (before any writes)
       for (int unsigned idx = 0; idx < 16; idx++) begin
         addr = build_addr(idx);
-        master_vip.read(addr, rd_data, slverr, '0);
+        master_vip.read_req(addr, rd_data, slverr, '0);
         assert(!slverr) else $error("Mem VIP initial-state read returned error at %0d", idx);
         assert(rd_data == '0)
           else $error("Mem VIP initial-state: memory not zero at %0d addr=%h got=%h",

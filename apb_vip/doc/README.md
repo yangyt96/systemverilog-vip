@@ -9,8 +9,8 @@ VIP-to-VIP style used by the serial VIPs in this repository.
 The VIP currently includes:
 
 - A parameterized APB interface ([`apb_if.sv`](sim/apb_if.sv))
-- A master VIP with blocking `write` and `read` APIs ([`apb_master_vip.sv`](sim/apb_master_vip.sv))
-- A slave VIP with `expect_write` and `respond_read` APIs ([`apb_slave_vip.sv`](sim/apb_slave_vip.sv))
+- A master VIP with blocking `write_req` and `read_req` APIs ([`apb_master_vip.sv`](sim/apb_master_vip.sv))
+- A slave VIP with `write_resp` and `read_resp` APIs ([`apb_slave_vip.sv`](sim/apb_slave_vip.sv))
   - Supports configurable `PREADY` delay and `PSLVERR` error injection
 - A hardware memory slave VIP module ([`apb_mem_vip.sv`](sim/apb_mem_vip.sv))
   - Synthesizable APB slave with byte-addressed storage
@@ -40,8 +40,8 @@ apb_vip/
 ### Master VIP (class-based)
 
 ```systemverilog
-master_vip.write(addr, data, strb, slverr, prot);
-master_vip.read(addr, data, slverr, prot);
+master_vip.write_req(addr, data, strb, slverr, prot);
+master_vip.read_req(addr, data, slverr, prot);
 ```
 
 **Configuration:**
@@ -54,8 +54,8 @@ master_vip.configure_timeout(cycles);
 ### Slave VIP (class-based, software slave)
 
 ```systemverilog
-slave_vip.expect_write(addr, data, strb, prot, slverr);
-slave_vip.respond_read(read_data, addr, prot, slverr);
+slave_vip.write_resp(addr, data, strb, prot, slverr);
+slave_vip.read_resp(read_data, addr, prot, slverr);
 ```
 
 **Configuration:**

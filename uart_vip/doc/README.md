@@ -10,8 +10,8 @@ through a UART interface without a DUT.
 The VIP currently includes:
 
 - A single-wire UART interface
-- A transmitter VIP with `transmit`
-- A receiver VIP with `receive`
+- A transmitter VIP with `send_frame`
+- A receiver VIP with `recv_frame`
 - 8N1 frame support, LSB first
 - Configurable baud rate via `CLKS_PER_BIT` parameter
 - Configurable parity (none/odd/even) via `PARITY_MODE` parameter
@@ -61,7 +61,7 @@ The transmitter VIP is a class-based UART source.
 **Main API:**
 
 ```systemverilog
-tx_vip.transmit(data);
+tx_vip.send_frame(data);
 ```
 
 **Configuration:**
@@ -85,7 +85,7 @@ The receiver VIP is a class-based UART sink.
 **Main API:**
 
 ```systemverilog
-rx_vip.receive(data, framing_error);
+rx_vip.recv_frame(data, framing_error);
 ```
 
 **Configuration:**

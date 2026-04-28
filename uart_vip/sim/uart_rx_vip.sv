@@ -48,8 +48,8 @@ class UartRxVIP #(
   endtask
 
   // API: receive one UART frame, 8N1 by default, LSB first.
-  task receive(output logic [DATA_BITS-1:0] data, output bit framing_error,
-               output bit parity_error);
+  task recv_frame(output logic [DATA_BITS-1:0] data, output bit framing_error,
+                  output bit parity_error);
     data = '0;
     framing_error = 1'b0;
     parity_error = 1'b0;

@@ -9,8 +9,8 @@ classes and verified with VUnit. It follows the direct VIP-to-VIP style used by
 The VIP currently includes:
 
 - A three-wire I2S interface: `bclk`, `ws`, and `sd`
-- A transmitter VIP with `transmit`
-- A receiver VIP with `receive`
+- A transmitter VIP with `send_frame`
+- A receiver VIP with `recv_frame`
 - Stereo frame support with `WS=0` for left and `WS=1` for right
 - MSB-first sample transfer with one I2S lead bit before each channel MSB
 - Configurable sample width via `SAMPLE_WIDTH` parameter
@@ -47,7 +47,7 @@ i2s_vip/
 **Main API:**
 
 ```systemverilog
-tx_vip.transmit(left_sample, right_sample);
+tx_vip.send_frame(left_sample, right_sample);
 ```
 
 **Configuration:**
@@ -68,7 +68,7 @@ tx_vip.configure_timeout(cycles);
 **Main API:**
 
 ```systemverilog
-rx_vip.receive(left_sample, right_sample, frame_error);
+rx_vip.recv_frame(left_sample, right_sample, frame_error);
 ```
 
 **Configuration:**

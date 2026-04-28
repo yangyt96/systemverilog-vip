@@ -37,8 +37,8 @@ module uart_vip_tb;
     exp_data = build_data(index);
 
     fork
-      tx_vip.transmit(exp_data);
-      rx_vip.receive(rx_data, framing_error, parity_error);
+      tx_vip.send_frame(exp_data);
+      rx_vip.recv_frame(rx_data, framing_error, parity_error);
     join
 
     assert(!framing_error) else $error("UART framing error at stimulus %0d", index);
@@ -52,7 +52,7 @@ module uart_vip_tb;
   task automatic drive_frames(input int unsigned start_index,
                               input int unsigned frame_count);
     for (int unsigned idx = start_index; idx < (start_index + frame_count); idx++) begin
-      tx_vip.transmit(build_data(idx));
+      tx_vip.send_frame(build_data(idx));
       #(INTER_TRANSACTION_PAUSE);
     end
   endtask
@@ -67,7 +67,7 @@ module uart_vip_tb;
 
     observed_count = 0;
     for (int unsigned idx = start_index; idx < (start_index + frame_count); idx++) begin
-      rx_vip.receive(rx_data, framing_error, parity_error);
+      rx_vip.recv_frame(rx_data, framing_error, parity_error);
       exp_data = build_data(idx);
       observed_count++;
       assert(!framing_error) else $error("UART continuous framing error at stimulus %0d", idx);
@@ -91,8 +91,8 @@ module uart_vip_tb;
     rx_vip.configure_parity(parity_mode);
 
     fork
-      tx_vip.transmit(exp_data);
-      rx_vip.receive(rx_data, framing_error, parity_error);
+      tx_vip.send_frame(exp_data);
+      rx_vip.recv_frame(rx_data, framing_error, parity_error);
     join
 
     assert(!framing_error) else $error("UART parity framing error at stimulus %0d", index);

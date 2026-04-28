@@ -87,9 +87,9 @@ class ApbMasterVIP #(
     vif.pprot   <= '0;
   endtask
 
-  task automatic write(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
-                       input logic [STRB_WIDTH-1:0] strb = '1, output bit slverr,
-                       input logic [PROT_WIDTH-1:0] prot = '0);
+  task automatic write_req(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
+                           input logic [STRB_WIDTH-1:0] strb = '1, output bit slverr,
+                           input logic [PROT_WIDTH-1:0] prot = '0);
     wait_reset_release();
     apply_pause();
 
@@ -113,8 +113,8 @@ class ApbMasterVIP #(
     idle();
   endtask
 
-  task automatic read(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
-                      output bit slverr, input logic [PROT_WIDTH-1:0] prot = '0);
+  task automatic read_req(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
+                          output bit slverr, input logic [PROT_WIDTH-1:0] prot = '0);
     wait_reset_release();
     apply_pause();
 

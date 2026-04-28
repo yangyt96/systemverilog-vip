@@ -23,8 +23,8 @@ Quick reference for all VIP APIs in `sv-light-vip`.
 
 | Method | Description |
 |--------|-------------|
-| `write(addr, data, strb, slverr, prot)` | APB write transaction |
-| `read(addr, data, slverr, prot)` | APB read transaction |
+| `write_req(addr, data, strb, slverr, prot)` | APB write transaction |
+| `read_req(addr, data, slverr, prot)` | APB read transaction |
 | `configure_pause_generator(enable, min_cycles, max_cycles)` | Configure random delay between transactions |
 | `configure_timeout(cycles)` | Set transaction timeout |
 
@@ -32,8 +32,8 @@ Quick reference for all VIP APIs in `sv-light-vip`.
 
 | Method | Description |
 |--------|-------------|
-| `expect_write(addr, data, strb, prot, slverr)` | Expect an APB write, optionally inject error |
-| `respond_read(read_data, addr, prot, slverr)` | Respond to an APB read, optionally inject error |
+| `write_resp(addr, data, strb, prot, slverr)` | Respond to an APB write, optionally inject error |
+| `read_resp(read_data, addr, prot, slverr)` | Respond to an APB read, optionally inject error |
 | `configure_backpressure(enable, min_cycles, max_cycles)` | Configure PREADY stall (random delay) |
 | `configure_timeout(cycles)` | Set transaction timeout |
 
@@ -191,7 +191,7 @@ Synthesizable AXI4-Full slave with byte-addressed storage, burst address progres
 
 | Method | Description |
 |--------|-------------|
-| `transmit(data)` | Transmit a byte (8N1, LSB first) |
+| `send_frame(data)` | Transmit a byte (8N1, LSB first) |
 | `configure_pause_generator(enable, min_cycles, max_cycles)` | Configure random inter-frame delay |
 | `configure_timeout(cycles)` | Set transaction timeout |
 
@@ -199,7 +199,7 @@ Synthesizable AXI4-Full slave with byte-addressed storage, burst address progres
 
 | Method | Description |
 |--------|-------------|
-| `receive(data, framing_error)` | Receive a byte, report framing error |
+| `recv_frame(data, framing_error)` | Receive a byte, report framing error |
 | `configure_timeout(cycles)` | Set transaction timeout |
 
 ### Parameters
@@ -217,7 +217,7 @@ Synthesizable AXI4-Full slave with byte-addressed storage, burst address progres
 
 | Method | Description |
 |--------|-------------|
-| `transfer(tx_data, rx_data)` | Full-duplex SPI transfer |
+| `send_recv(tx_data, rx_data)` | Full-duplex SPI transfer |
 | `configure_pause_generator(enable, min_cycles, max_cycles)` | Configure random inter-transfer delay |
 | `configure_timeout(cycles)` | Set transaction timeout |
 
@@ -225,7 +225,7 @@ Synthesizable AXI4-Full slave with byte-addressed storage, burst address progres
 
 | Method | Description |
 |--------|-------------|
-| `transfer(tx_data, rx_data)` | Full-duplex SPI transfer |
+| `send_recv(tx_data, rx_data)` | Full-duplex SPI transfer |
 | `configure_timeout(cycles)` | Set transaction timeout |
 
 ### Parameters
@@ -244,16 +244,16 @@ Synthesizable AXI4-Full slave with byte-addressed storage, burst address progres
 
 | Method | Description |
 |--------|-------------|
-| `write_byte(address, data, address_ack, data_ack)` | Write a byte to a slave |
-| `read_byte(address, data, address_ack)` | Read a byte from a slave |
+| `send_byte(address, data, address_ack, data_ack)` | Write a byte to a slave |
+| `recv_byte(address, data, address_ack)` | Read a byte from a slave |
 | `configure_timeout(cycles)` | Set transaction timeout |
 
 ### Slave — [`i2c_slave_vip.sv`](i2c_vip/sim/i2c_slave_vip.sv)
 
 | Method | Description |
 |--------|-------------|
-| `expect_write(data, address_match)` | Expect a write byte from master |
-| `respond_read(data, address_match, master_ack)` | Respond with a read byte |
+| `recv_byte(data, address_match)` | Receive a write byte from master |
+| `send_byte(data, address_match, master_ack)` | Respond with a read byte |
 | `configure_timeout(cycles)` | Set transaction timeout |
 
 ### Parameters
@@ -270,7 +270,7 @@ Synthesizable AXI4-Full slave with byte-addressed storage, burst address progres
 
 | Method | Description |
 |--------|-------------|
-| `transmit(left_sample, right_sample)` | Transmit stereo frame |
+| `send_frame(left_sample, right_sample)` | Transmit stereo frame |
 | `configure_pause_generator(enable, min_cycles, max_cycles)` | Configure random inter-frame delay |
 | `configure_timeout(cycles)` | Set transaction timeout |
 
@@ -278,7 +278,7 @@ Synthesizable AXI4-Full slave with byte-addressed storage, burst address progres
 
 | Method | Description |
 |--------|-------------|
-| `receive(left_sample, right_sample, frame_error)` | Receive stereo frame |
+| `recv_frame(left_sample, right_sample, frame_error)` | Receive stereo frame |
 | `configure_timeout(cycles)` | Set transaction timeout |
 
 ### Parameters

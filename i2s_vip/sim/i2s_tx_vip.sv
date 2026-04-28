@@ -59,8 +59,8 @@ class I2STxVIP #(
 
   // API: transmit one stereo I2S frame, MSB first.
   // WS=0 is left, WS=1 is right. Each channel has one lead bit before the MSB.
-  task automatic transmit(input logic [SAMPLE_WIDTH-1:0] left_sample,
-                          input logic [SAMPLE_WIDTH-1:0] right_sample);
+  task automatic send_frame(input logic [SAMPLE_WIDTH-1:0] left_sample,
+                            input logic [SAMPLE_WIDTH-1:0] right_sample);
     int unsigned cycles;
     int unsigned pause_cycles;
 

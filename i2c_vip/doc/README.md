@@ -10,8 +10,8 @@ a shared I2C interface without a DUT.
 The VIP currently includes:
 
 - An open-drain I2C interface with resolved `scl` and `sda`
-- A master VIP with single-byte `write_byte` and `read_byte` APIs
-- A slave VIP with matching `expect_write` and `respond_read` APIs
+- A master VIP with single-byte `send_byte` and `recv_byte` APIs
+- A slave VIP with matching `recv_byte` and `send_byte` APIs
 - 7-bit addressing
 - ACK/NACK checking
 - Wrong-address NACK checking
@@ -62,8 +62,8 @@ address plus R/W bit, and checks ACK/NACK.
 **Main APIs:**
 
 ```systemverilog
-master_vip.write_byte(address, data, address_ack, data_ack);
-master_vip.read_byte(address, data, address_ack);
+master_vip.send_byte(address, data, address_ack, data_ack);
+master_vip.recv_byte(address, data, address_ack);
 ```
 
 **Configuration:**
@@ -80,8 +80,8 @@ bit match its configured address.
 **Main APIs:**
 
 ```systemverilog
-slave_vip.expect_write(data, address_match);
-slave_vip.respond_read(data, address_match, master_ack);
+slave_vip.recv_byte(data, address_match);
+slave_vip.send_byte(data, address_match, master_ack);
 ```
 
 **Configuration:**

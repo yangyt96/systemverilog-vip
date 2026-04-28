@@ -10,8 +10,8 @@ interface without a DUT.
 The VIP currently includes:
 
 - A four-wire SPI interface: `sclk`, `cs_n`, `mosi`, and `miso`
-- A master VIP with `transfer`
-- A slave VIP with `transfer`
+- A master VIP with `send_recv`
+- A slave VIP with `send_recv`
 - Configurable CPOL and CPHA for all SPI modes (0-3)
 - MSB-first full-duplex transfers
 - Transaction timeout protection
@@ -59,7 +59,7 @@ The master VIP controls chip select and serial clock.
 **Main API:**
 
 ```systemverilog
-master_vip.transfer(tx_data, rx_data);
+master_vip.send_recv(tx_data, rx_data);
 ```
 
 **Configuration:**
@@ -85,7 +85,7 @@ data on `miso`.
 **Main API:**
 
 ```systemverilog
-slave_vip.transfer(tx_data, rx_data);
+slave_vip.send_recv(tx_data, rx_data);
 ```
 
 **Configuration:**

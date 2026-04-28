@@ -62,8 +62,8 @@ class SpiSlaveVIP #(
   //   Mode 1: CPOL=0, CPHA=1 - SCLK idle low,  sample on falling edge, shift on rising  edge
   //   Mode 2: CPOL=1, CPHA=0 - SCLK idle high, sample on falling edge, shift on rising  edge
   //   Mode 3: CPOL=1, CPHA=1 - SCLK idle high, sample on rising  edge, shift on falling edge
-  task automatic transfer(input logic [DATA_BITS-1:0] tx_data,
-                          output logic [DATA_BITS-1:0] rx_data);
+  task automatic send_recv(input logic [DATA_BITS-1:0] tx_data,
+                           output logic [DATA_BITS-1:0] rx_data);
     int unsigned cycles;
 
     rx_data = '0;

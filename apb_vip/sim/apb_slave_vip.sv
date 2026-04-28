@@ -86,10 +86,9 @@ class ApbSlaveVIP #(
     end while (!(vif.psel && vif.penable && (vif.pwrite == expect_write)));
   endtask
 
-  task automatic expect_write(output logic [ADDR_WIDTH-1:0] addr,
-                              output logic [DATA_WIDTH-1:0] data,
-                              output logic [STRB_WIDTH-1:0] strb,
-                              output logic [PROT_WIDTH-1:0] prot, input bit slverr = 1'b0);
+  task automatic write_resp(output logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
+                            output logic [STRB_WIDTH-1:0] strb, output logic [PROT_WIDTH-1:0] prot,
+                            input bit slverr = 1'b0);
     int unsigned stall;
 
     wait_access(1'b1);
@@ -110,9 +109,9 @@ class ApbSlaveVIP #(
              data, strb, slverr, stall);
   endtask
 
-  task automatic respond_read(input logic [DATA_WIDTH-1:0] read_data,
-                              output logic [ADDR_WIDTH-1:0] addr,
-                              output logic [PROT_WIDTH-1:0] prot, input bit slverr = 1'b0);
+  task automatic read_resp(input logic [DATA_WIDTH-1:0] read_data,
+                           output logic [ADDR_WIDTH-1:0] addr, output logic [PROT_WIDTH-1:0] prot,
+                           input bit slverr = 1'b0);
     int unsigned stall;
 
     wait_access(1'b0);
