@@ -108,37 +108,37 @@ class Axi4FullMasterVIP #(
   endtask
 
   task automatic clear_outputs();
-    vif.awid     = '0;
-    vif.awaddr   = '0;
-    vif.awlen    = '0;
-    vif.awsize   = '0;
-    vif.awburst  = '0;
-    vif.awlock   = '0;
-    vif.awcache  = '0;
-    vif.awprot   = '0;
-    vif.awqos    = '0;
-    vif.awregion = '0;
-    vif.awuser   = '0;
-    vif.awvalid  = 1'b0;
-    vif.wdata    = '0;
-    vif.wstrb    = '0;
-    vif.wlast    = 1'b0;
-    vif.wuser    = '0;
-    vif.wvalid   = 1'b0;
-    vif.bready   = 1'b0;
-    vif.arid     = '0;
-    vif.araddr   = '0;
-    vif.arlen    = '0;
-    vif.arsize   = '0;
-    vif.arburst  = '0;
-    vif.arlock   = '0;
-    vif.arcache  = '0;
-    vif.arprot   = '0;
-    vif.arqos    = '0;
-    vif.arregion = '0;
-    vif.aruser   = '0;
-    vif.arvalid  = 1'b0;
-    vif.rready   = 1'b0;
+    vif.awid     <= '0;
+    vif.awaddr   <= '0;
+    vif.awlen    <= '0;
+    vif.awsize   <= '0;
+    vif.awburst  <= '0;
+    vif.awlock   <= '0;
+    vif.awcache  <= '0;
+    vif.awprot   <= '0;
+    vif.awqos    <= '0;
+    vif.awregion <= '0;
+    vif.awuser   <= '0;
+    vif.awvalid  <= 1'b0;
+    vif.wdata    <= '0;
+    vif.wstrb    <= '0;
+    vif.wlast    <= 1'b0;
+    vif.wuser    <= '0;
+    vif.wvalid   <= 1'b0;
+    vif.bready   <= 1'b0;
+    vif.arid     <= '0;
+    vif.araddr   <= '0;
+    vif.arlen    <= '0;
+    vif.arsize   <= '0;
+    vif.arburst  <= '0;
+    vif.arlock   <= '0;
+    vif.arcache  <= '0;
+    vif.arprot   <= '0;
+    vif.arqos    <= '0;
+    vif.arregion <= '0;
+    vif.aruser   <= '0;
+    vif.arvalid  <= 1'b0;
+    vif.rready   <= 1'b0;
   endtask
 
   // Write transaction: address, data, and response
@@ -169,21 +169,20 @@ class Axi4FullMasterVIP #(
 
     apply_pause();
 
-    vif.awid     = id;
-    vif.awaddr   = addr;
-    vif.awlen    = LEN_WIDTH'(beat_count - 1);
-    vif.awsize   = size;
-    vif.awburst  = burst;
-    vif.awprot   = prot;
-    vif.awcache  = 4'b0000;
-    vif.awlock   = 1'b0;
-    vif.awqos    = 4'b0000;
-    vif.awregion = 4'b0000;
-    vif.awuser   = '0;
-    vif.awvalid  = 1'b1;
-
     cycles       = 0;
     do begin
+      vif.awid     <= id;
+      vif.awaddr   <= addr;
+      vif.awlen    <= LEN_WIDTH'(beat_count - 1);
+      vif.awsize   <= size;
+      vif.awburst  <= burst;
+      vif.awprot   <= prot;
+      vif.awcache  <= 4'b0000;
+      vif.awlock   <= 1'b0;
+      vif.awqos    <= 4'b0000;
+      vif.awregion <= 4'b0000;
+      vif.awuser   <= '0;
+      vif.awvalid  <= 1'b1;
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
@@ -194,7 +193,7 @@ class Axi4FullMasterVIP #(
     $display("[%0t] %s TX AW addr=%h beats=%0d id=%0d burst=%0d", $time, vip_name, addr,
              beat_count, id, burst);
 
-    vif.awvalid = 1'b0;
+    vif.awvalid <= 1'b0;
   endtask
 
   // Write Data Channel - Send write data phase
@@ -211,24 +210,24 @@ class Axi4FullMasterVIP #(
 
     apply_pause();
 
-    vif.wuser  = '0;
-    vif.wvalid = 1'b1;
 
     for(beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
       cycles     = 0;
-      vif.wdata  = data[beat_idx];
-      vif.wstrb  = strb[beat_idx];
-      vif.wlast  = (beat_idx == (beat_count - 1));
       do begin
-        @(posedge vif.aclk);
         cycles++;
+        vif.wdata  <= data[beat_idx];
+        vif.wstrb  <= strb[beat_idx];
+        vif.wlast  <= (beat_idx == (beat_count - 1));
+        vif.wuser  <= '0;
+        vif.wvalid <= 1'b1;
+        @(posedge vif.aclk);
         if (cycles >= timeout_cycles) begin
           $fatal(1, "%s timed out waiting for AXI4 write data handshakes", vip_name);
         end
       end while(!vif.wready);
     end
 
-    vif.wvalid = 1'b0;
+    vif.wvalid <= 1'b0;
 
     $display("[%0t] %s TX W beats=%0d", $time, vip_name, beat_count);
   endtask
@@ -239,9 +238,9 @@ class Axi4FullMasterVIP #(
 
     apply_pause();
 
-    vif.bready = 1'b1;
     cycles = 0;
     do begin
+      vif.bready <= 1'b1;
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
@@ -252,7 +251,7 @@ class Axi4FullMasterVIP #(
     $display("[%0t] %s RX B bresp=%0h", $time, vip_name, resp);
 
     resp = vif.bresp;
-    vif.bready = 1'b0;
+    vif.bready <= 1'b0;
     // @(posedge vif.aclk);
   endtask
 
@@ -305,18 +304,18 @@ class Axi4FullMasterVIP #(
 
     apply_pause();
 
-    vif.arid     = id;
-    vif.araddr   = addr;
-    vif.arlen    = LEN_WIDTH'(beat_count - 1);
-    vif.arsize   = size;
-    vif.arburst  = burst;
-    vif.arprot   = prot;
-    vif.arcache  = 4'b0000;
-    vif.arlock   = 1'b0;
-    vif.arqos    = 4'b0000;
-    vif.arregion = 4'b0000;
-    vif.aruser   = '0;
-    vif.arvalid  = 1'b1;
+    vif.arid     <= id;
+    vif.araddr   <= addr;
+    vif.arlen    <= LEN_WIDTH'(beat_count - 1);
+    vif.arsize   <= size;
+    vif.arburst  <= burst;
+    vif.arprot   <= prot;
+    vif.arcache  <= 4'b0000;
+    vif.arlock   <= 1'b0;
+    vif.arqos    <= 4'b0000;
+    vif.arregion <= 4'b0000;
+    vif.aruser   <= '0;
+    vif.arvalid  <= 1'b1;
 
     cycles       = 0;
     do begin
@@ -327,7 +326,7 @@ class Axi4FullMasterVIP #(
       end
     end while (!(vif.arready));
 
-    vif.arvalid = 1'b0;
+    vif.arvalid <= 1'b0;
 
     $display("[%0t] %s TX AR addr=%h beats=%0d id=%0d burst=%0d", $time, vip_name, addr,
              beat_count, id, burst);
@@ -348,7 +347,7 @@ class Axi4FullMasterVIP #(
 
     apply_pause();
 
-    vif.rready = 1;
+    vif.rready <= 1;
     for(beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
       cycles = 0;
       do begin
@@ -368,7 +367,7 @@ class Axi4FullMasterVIP #(
 
     $display("[%0t] %s RX R beats=%0d id=%0d", $time, vip_name, beat_count, id);
 
-    vif.rready = 0;
+    vif.rready <= 0;
     // @(posedge vif.aclk);
 
   endtask

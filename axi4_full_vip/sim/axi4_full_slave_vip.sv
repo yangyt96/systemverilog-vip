@@ -117,19 +117,19 @@ class Axi4FullSlaveVIP #(
 
   // Clear all slave output signals to default state
   task automatic clear_outputs();
-    vif.awready = 1'b0;
-    vif.wready  = 1'b0;
-    vif.bid     = '0;
-    vif.bresp   = 2'b00;
-    vif.buser   = '0;
-    vif.bvalid  = 1'b0;
-    vif.arready = 1'b0;
-    vif.rid     = '0;
-    vif.rdata   = '0;
-    vif.rresp   = 2'b00;
-    vif.rlast   = 1'b0;
-    vif.ruser   = '0;
-    vif.rvalid  = 1'b0;
+    vif.awready <= 1'b0;
+    vif.wready  <= 1'b0;
+    vif.bid     <= '0;
+    vif.bresp   <= 2'b00;
+    vif.buser   <= '0;
+    vif.bvalid  <= 1'b0;
+    vif.arready <= 1'b0;
+    vif.rid     <= '0;
+    vif.rdata   <= '0;
+    vif.rresp   <= 2'b00;
+    vif.rlast   <= 1'b0;
+    vif.ruser   <= '0;
+    vif.rvalid  <= 1'b0;
   endtask
 
   // ============ Write Channel Tasks ============
@@ -148,67 +148,62 @@ class Axi4FullSlaveVIP #(
 
     apply_stall();
 
+    vif.awready <= 1'b1;
+
     cycles = 0;
-    while (!(vif.awvalid)) begin
+    do begin
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
         $fatal(1, "%s timed out waiting for AWVALID", vip_name);
       end
-    end
+    end while (!(vif.awvalid));
 
+    // Capture address AFTER handshake. Master uses NBA to drive address
+    // signals, which take effect in the NBA region. By waiting for awvalid
+    // (which is also NBA-driven), we ensure all address signals are stable.
     addr   = vif.awaddr;
     id     = vif.awid;
     len    = vif.awlen;
     size   = vif.awsize;
     burst  = vif.awburst;
     prot   = vif.awprot;
-    vif.awready <= 1'b1;
-    @(posedge vif.aclk);
 
     $display("[%0t] %s RX AW addr=%h id=%0d len=%0d size=%0d burst=%0d",
              $time, vip_name, addr, id, len, size, burst);
 
     vif.awready <= 1'b0;
-    @(posedge vif.aclk);
   endtask
 
-  // Wait for and accept a single write data (W) beat
-  task automatic accept_write_data(
+  task automatic recv_wchn(
       output logic [DATA_WIDTH-1:0] data,
       output logic [STRB_WIDTH-1:0] strb,
-      output bit                    last);
+      output logic                  last);
     int unsigned cycles;
+
+    wait_reset_release();
+
     apply_stall();
 
     cycles = 0;
-
-    // Use while loop (check before wait) to avoid race condition in fork...join.
-    // If master already has wvalid asserted, capture data immediately.
-    while (!vif.wvalid) begin
+    do begin
+      vif.wready <= 1'b1;
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
-        $fatal(1, "%s timed out waiting for WVALID", vip_name);
+        $fatal(1, "%s timed out waiting for AWVALID", vip_name);
       end
-    end
+    end while (!vif.wvalid);
 
-    vif.wready = 1'b1;
-    @(posedge vif.aclk);
-
-    // Capture data combinatorially (immediately) after while loop exits.
-    // In fork...join, master may update wdata on the same clock edge, so
-    // we must capture before any NBA updates take effect.
     data = vif.wdata;
     strb = vif.wstrb;
     last = vif.wlast;
 
-    // Use non-blocking assignment to release wready, ensuring master sees
-    // the handshake in its while loop even in fork...join race.
-    vif.wready <= 1'b0;
-    @(posedge vif.aclk);
+    $display("[%0t] %s RX W data=%h strb=%h last=%b",
+             $time, vip_name, data, strb, last);
 
-    $display("[%0t] %s RX W data=%h strb=%h last=%0b", $time, vip_name, data, strb, last);
+    vif.wready <= 1'b0;
+    // @(posedge vif.aclk);
   endtask
 
   // Wait for and accept a complete write burst (AW + all W beats)
@@ -235,7 +230,7 @@ class Axi4FullSlaveVIP #(
     $display("[%0t] debug slave 0 beat_count=%0d", $time, beat_count);
 
     for (int i = 0; i < beat_count; i++) begin
-      accept_write_data(beat_data, beat_strb, beat_last);
+      recv_wchn(beat_data, beat_strb, beat_last);
 
       $display("[%0t] debug slave 1 itr=%0d", $time, i);
 
@@ -259,10 +254,10 @@ class Axi4FullSlaveVIP #(
 
     apply_stall();
 
-    vif.bid    = id;
-    vif.bresp  = resp;
-    vif.buser  = '0;
-    vif.bvalid = 1'b1;
+    vif.bid    <= id;
+    vif.bresp  <= resp;
+    vif.buser  <= '0;
+    vif.bvalid <= 1'b1;
 
     cycles = 0;
     do begin
@@ -276,7 +271,7 @@ class Axi4FullSlaveVIP #(
     $display("[%0t] %s TX B id=%0d resp=%0h", $time, vip_name, id, resp);
 
     vif.bvalid <= 1'b0;
-    @(posedge vif.aclk);
+    // @(posedge vif.aclk);
   endtask
 
   // Complete write transaction: expect write + send response
@@ -311,29 +306,31 @@ class Axi4FullSlaveVIP #(
 
     apply_stall();
 
+    vif.arready <= 1'b1;
+
     cycles = 0;
-    while (!(vif.arvalid)) begin
+    do begin
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
         $fatal(1, "%s timed out waiting for ARVALID", vip_name);
       end
-    end
+    end while (!(vif.arvalid));
 
+    // Capture address AFTER handshake. Master uses NBA to drive address
+    // signals, which take effect in the NBA region. By waiting for arvalid
+    // (which is also NBA-driven), we ensure all address signals are stable.
     addr  = vif.araddr;
     id    = vif.arid;
     len   = vif.arlen;
     size  = vif.arsize;
     burst = vif.arburst;
     prot  = vif.arprot;
-    vif.arready = 1'b1;
-    @(posedge vif.aclk);
 
     $display("[%0t] %s RX AR addr=%h id=%0d len=%0d size=%0d burst=%0d",
              $time, vip_name, addr, id, len, size, burst);
 
     vif.arready <= 1'b0;
-    @(posedge vif.aclk);
   endtask
 
   task automatic send_rchn(
@@ -350,27 +347,26 @@ class Axi4FullSlaveVIP #(
 
     apply_stall();
 
-    vif.rid    = id;
-    vif.rresp  = resp;
-    vif.ruser  = '0;
-    vif.rvalid = 1'b1;
+    vif.rid    <= id;
+    vif.rresp  <= resp;
+    vif.ruser  <= '0;
+    vif.rvalid <= 1'b1;
 
     for(beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
         cycles     = 0;
-        vif.rdata  = data[beat_idx];
-        vif.rlast  = (beat_idx == (beat_count - 1));
+        vif.rdata  <= data[beat_idx];
+        vif.rlast  <= (beat_idx == (beat_count - 1));
         do begin
           @(posedge vif.aclk);
           cycles++;
           if (cycles >= timeout_cycles) begin
-            $fatal(1, "%s timed out waiting for AXI4 write data handshakes", vip_name);
+            $fatal(1, "%s timed out waiting for AXI4 read data handshakes", vip_name);
           end
-        end while(!(vif.rvalid && vif.rready));
+        end while(!(vif.rready));
     end
 
     vif.rvalid <= 0;
-    @(posedge vif.aclk);
-
+    // @(posedge vif.aclk);
   endtask
 
   // Complete read transaction: accept address + send all data beats

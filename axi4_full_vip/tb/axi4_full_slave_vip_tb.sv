@@ -250,6 +250,8 @@ module axi4_full_slave_vip_tb;
         .enable(1'b1), .min_cycles(1), .max_cycles(5)
       );
 
+      rd_data = new[1];
+
       // Use separate array for slave to avoid race with master writing rd_data
       slave_rd_data = new[1];
       slave_rd_data[0] = 32'h12345678;
