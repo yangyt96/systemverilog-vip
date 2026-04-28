@@ -6,7 +6,7 @@
 > 语言: 简体中文 (zh-CN) — 与用户沟通语言
 > Commit 语言: 英语 — 代码提交信息使用英语
 >
-> 版本: v2.3 — 新增 vif 赋值规则、assertion 风格、Makefile 优先、提交后询问下一步
+> 版本: v2.4 — 新增 Phase 0-2 API 文档读取、Phase 5 文档更新步骤、AI 窗口切换支持
 
 ---
 
@@ -19,6 +19,8 @@
 5. **代码质量门禁** — Lint + Format 必须通过
 6. **用户确认设计** — 实现前先与用户确认设计方案，避免过度设计
 7. **精确提交** — 只提交本次修改的文件，使用 `git add <file1> <file2>` 而非 `git add -A`
+8. **AI 窗口可切换性** — 工作流文档是唯一"记忆载体"，任何 AI 窗口通过读取本文件即可无缝继续任务
+9. **文档与代码同步** — 修改代码前/后必须同步更新 README 和 API 文档
 
 ---
 
@@ -30,10 +32,19 @@
 输入: 用户需求
 ```
 
-1. **理解需求** — 明确用户想要什么（新 VIP？增强现有 VIP？修复？）
-2. **确认范围** — 如果需求模糊，先提出具体方案让用户确认
-3. **评估复杂度** — 判断是否需要切换到 Architect 模式进行设计
-4. **输出**: 明确的任务范围和目标
+1. **读取项目文档** — 新 AI 窗口首先读取以下文档以建立上下文：
+   - [`plans/sv_light_vip_workflow.md`](plans/sv_light_vip_workflow.md) — 本工作流文档（了解流程和规范）
+   - [`API_REFERENCE.md`](API_REFERENCE.md) — API 参考文档（了解所有 VIP 的 API 规范）
+   - [`plans/repo_analysis.md`](plans/repo_analysis.md) — 仓库分析文档（了解项目结构和设计决策）
+   - 目标 VIP 的 [`doc/README.md`](.) — 具体 VIP 的文档
+
+2. **理解需求** — 明确用户想要什么（新 VIP？增强现有 VIP？修复？）
+
+3. **确认范围** — 如果需求模糊，先提出具体方案让用户确认
+
+4. **评估复杂度** — 判断是否需要切换到 Architect 模式进行设计
+
+5. **输出**: 明确的任务范围和目标
 
 > **经验教训**: 不要直接开始实现复杂功能。先提出方案让用户确认，避免过度设计。
 > 例如: 用户说"增强 Mem VIP"，应先提出具体方案（如"只添加地址越界 DECERR"），
@@ -45,7 +56,12 @@
 输入: 确认后的任务范围
 ```
 
-1. **分析参考实现** — 阅读成熟 VIP（如 `axi4_full_vip`）的完整代码：
+1. **读取 API 参考文档** — 阅读 [`API_REFERENCE.md`](API_REFERENCE.md) 了解：
+   - 所有 VIP 的统一 API 规范（`apply_pause()` / `wait_reset_release()` / `apply_stall()`）
+   - Master/Slave 对称架构约定
+   - 参数命名和默认值约定
+
+2. **分析参考实现** — 阅读成熟 VIP（如 `axi4_full_vip`）的完整代码：
    - Interface（modport 定义）
    - Master/Slave 类架构（channel-level API + high-level API）
    - 背压/暂停机制
@@ -53,12 +69,12 @@
    - Testbench 结构
    - README 文档
 
-2. **分析目标 VIP 当前状态** — 阅读目标 VIP 的所有文件：
+3. **分析目标 VIP 当前状态** — 阅读目标 VIP 的所有文件：
    - 哪些组件已存在？
    - 哪些组件缺失？
    - 与参考实现的差距？
 
-3. **输出**: 架构差异分析 + 待办清单
+4. **输出**: 架构差异分析 + 待办清单
 
 ### Phase 2: 设计决策
 
@@ -66,10 +82,11 @@
 输入: 架构分析结果
 ```
 
-1. **确定 API 风格** — 保持与参考实现一致：
+1. **确定 API 风格** — 保持与参考实现和 API_REFERENCE.md 一致：
    - Channel-level: `send_awchn()`, `recv_bchn()` 等
    - High-level: `write_req_single()`, `read_resp_single()` 等
    - 背压: `apply_pause()` / `apply_stall()` 只在 high-level 调用
+   - 复位: `wait_reset_release()` 作为独立任务，在 high-level 入口调用
 
 2. **确定文件结构** — 与参考实现保持目录一致：
    ```
@@ -181,35 +198,42 @@
 输入: 验证通过的代码
 ```
 
-**原则**: 只提交本次修改涉及的文件，不提交无关文件。
+**原则**:
+- 只提交本次修改涉及的文件，不提交无关文件
+- **先更新文档，再提交代码** — 确保 README 和 API 文档与代码同步
 
-**提交后**: 主动询问用户"下一步做什么"，列出可选方向供用户选择。
+**步骤**:
 
-```bash
-# 1. 查看当前修改状态
-git status
+1. **更新文档** — 在提交代码前，先更新相关文档：
+   - 更新目标 VIP 的 [`doc/README.md`](.) — API 变更、新增功能、使用示例
+   - 如有必要，更新 [`API_REFERENCE.md`](API_REFERENCE.md) — 新增/修改的 API 签名
+   - 如有必要，更新 [`plans/repo_analysis.md`](plans/repo_analysis.md) — 架构变更记录
 
-# 2. 只添加本次修改的文件（精确指定路径）
-git add <path/to/file1.sv> <path/to/file2.sv> ...
+2. **查看当前修改状态**:
+   ```bash
+   git status
+   ```
 
-# 例如:
-# git add axi4_lite_vip/sim/axi4_lite_slave_vip.sv
-# git add axi4_lite_vip/sim/axi4_lite_vip_pkg.sv
-# git add axi4_lite_vip/tb/axi4_lite_vip_tb.sv
-# git add axi4_lite_vip/doc/README.md
+3. **只添加本次修改的文件**（精确指定路径）:
+   ```bash
+   git add <path/to/file1.sv> <path/to/file2.sv> <path/to/doc/README.md> ...
+   ```
 
-# 3. 确认只包含预期文件
-git status
+4. **确认只包含预期文件**:
+   ```bash
+   git status
+   ```
 
-# 4. 提交
-git commit -m "<type>(<scope>): <description>
+5. **提交**:
+   ```bash
+   git commit -m "<type>(<scope>): <description>
 
-- <change 1>
-- <change 2>
-...
+   - <change 1>
+   - <change 2>
+   ...
 
-All N/N tests passed, lint and format clean."
-```
+   All N/N tests passed, lint and format clean."
+   ```
 
 **不要使用**:
 - `git add -A` — 添加所有文件（包括无关文件）
@@ -236,6 +260,8 @@ All N/N tests passed, lint and format clean."
 | `[format]` | 格式化 |
 
 **Commit message 语言**: 使用英语（根据用户要求）
+
+**提交后**: 主动询问用户"下一步做什么"，列出可选方向供用户选择。
 
 ### Phase 6: 流程反思
 
@@ -290,6 +316,7 @@ All N/N tests passed, lint and format clean."
 - [ ] Testbench 覆盖基本功能 + 错误 + 背压 + 边界
 - [ ] run.py 注册所有 testbench
 - [ ] README 有完整文档
+- [ ] API_REFERENCE.md 已更新（如有新增 API）
 - [ ] Lint 通过
 - [ ] Format 通过
 - [ ] 仿真全部通过
@@ -299,6 +326,8 @@ All N/N tests passed, lint and format clean."
 - [ ] 向后兼容（默认参数保持原有行为）
 - [ ] 新增测试用例验证新功能
 - [ ] 不影响现有测试
+- [ ] README 已同步更新
+- [ ] API_REFERENCE.md 已同步更新（如有 API 变更）
 - [ ] Lint + Format + 仿真全部通过
 
 ### 测试用例设计检查
@@ -326,6 +355,43 @@ All N/N tests passed, lint and format clean."
 - [ ] `.do` 波形文件同步更新（模块名、信号路径）
 - [ ] `README.md` 同步更新（API 名称、文件结构、测试用例）
 - [ ] `run.py` 同步更新（如有新增 testbench）
+
+---
+
+## AI 窗口切换指南
+
+> 本工作流文档是项目唯一的"记忆载体"。当 AI 窗口需要切换时，新窗口通过以下步骤快速恢复上下文。
+
+### 新 AI 窗口接入步骤
+
+1. **读取本工作流文档** — 了解完整流程、规范、检查清单
+2. **读取项目文档**:
+   - [`API_REFERENCE.md`](API_REFERENCE.md) — API 规范
+   - [`plans/repo_analysis.md`](plans/repo_analysis.md) — 架构分析
+3. **读取当前 Phase 的输入** — 每个 Phase 开头有 `输入:` 标记，明确需要什么
+4. **查看 git log** — 了解最近的提交历史：
+   ```bash
+   git log --oneline -10
+   ```
+5. **查看当前修改状态**（如有未提交的修改）:
+   ```bash
+   git status
+   git diff --stat
+   ```
+6. **从当前 Phase 继续** — 根据工作流中的 Phase 定义，执行下一步操作
+
+### 各 Phase 的上下文恢复要点
+
+| Phase | 恢复要点 |
+|-------|----------|
+| Phase 0 | 读取 API_REFERENCE.md + repo_analysis.md + 目标 VIP 的 README |
+| Phase 1 | 读取 API_REFERENCE.md + 参考实现的完整代码 |
+| Phase 2 | 读取设计决策记录（如有） |
+| Phase 3 | 读取目标 VIP 的当前代码 + 设计文档 |
+| Phase 4 | 运行 `make lint` / `make format-check` / `make test-<vip_name>` |
+| Phase 5 | 检查 `git status` + 更新 README/API 文档 + 提交 |
+| Phase 6 | 查看本次任务的 git log + 反思 |
+| Phase 7 | 查看 API_REFERENCE.md + 对比参考实现 |
 
 ---
 
