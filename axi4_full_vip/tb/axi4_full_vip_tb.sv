@@ -74,42 +74,31 @@ module axi4_full_vip_tb;
 
     `TEST_CASE("Basic Write-Read")
     begin
-      logic [DATA_WIDTH-1:0] wr_data[];
-      logic [STRB_WIDTH-1:0] wr_strb[];
-      logic [DATA_WIDTH-1:0] rd_data[];
-      logic [DATA_WIDTH-1:0] slave_rd_data[];
+      logic [DATA_WIDTH-1:0] rd_data;
       logic [1:0]            resp;
 
       $display("\n=== AXI4 Full Slave VIP Testbench Started ===");
       $display("\n--- Test 1: Basic Write-Read ---");
 
-      wr_data = new[1];
-      wr_strb = new[1];
-      rd_data = new[1];
-      wr_data[0] = 32'hDEADBEEF;
-      wr_strb[0] = 4'hF;
-
       fork
-        master_vip.write_req_burst(
-          .addr(32'h1000), .data(wr_data), .strb(wr_strb),
+        master_vip.write_req_single(
+          .addr(32'h1000), .data(32'hDEADBEEF), .strb(4'hF),
           .id(4'd0), .resp(resp)
         );
-        slave_vip.write_resp_burst(.data(wr_data), .strb(wr_strb), .resp(2'b00));
+        slave_vip.write_resp_single(.data(32'hDEADBEEF), .strb(4'hF), .resp(2'b00));
       join
 
       assert(resp == 2'b00) else $error("Write response mismatch resp=%0h", resp);
 
-      // Read back - use separate array for slave to avoid race with master writing rd_data
-      slave_rd_data = new[1];
-      slave_rd_data[0] = 32'hDEADBEEF;
+      // Read back
       fork
-        master_vip.read_req_single(.addr(32'h1000), .data(rd_data[0]), .resp(resp), .id(4'd0));
-        slave_vip.read_resp_burst(.data(slave_rd_data), .resp(2'b00));
+        master_vip.read_req_single(.addr(32'h1000), .data(rd_data), .resp(resp), .id(4'd0));
+        slave_vip.read_resp_single(.data(32'hDEADBEEF), .resp(2'b00));
       join
 
       assert(resp == 2'b00) else $error("Read response mismatch resp=%0h", resp);
-      assert(rd_data[0] == 32'hDEADBEEF)
-        else $error("Read data mismatch exp=%h got=%h", 32'hDEADBEEF, rd_data[0]);
+      assert(rd_data == 32'hDEADBEEF)
+        else $error("Read data mismatch exp=%h got=%h", 32'hDEADBEEF, rd_data);
 
       #(INTER_TRANSACTION_PAUSE);
     end
@@ -167,37 +156,26 @@ module axi4_full_vip_tb;
 
     `TEST_CASE("Slave Error Response")
     begin
-      logic [DATA_WIDTH-1:0] wr_data[];
-      logic [STRB_WIDTH-1:0] wr_strb[];
-      logic [DATA_WIDTH-1:0] rd_data[];
-      logic [DATA_WIDTH-1:0] slave_rd_data[];
+      logic [DATA_WIDTH-1:0] rd_data;
       logic [1:0]            resp;
 
       $display("\n--- Test 3: Slave Error Response (SLVERR) ---");
 
-      wr_data = new[1];
-      wr_strb = new[1];
-      rd_data = new[1];
-      wr_data[0] = 32'hBAD0C0DE;
-      wr_strb[0] = 4'hF;
-
       // Write with SLVERR
       fork
-        master_vip.write_req_burst(
-          .addr(32'h3000), .data(wr_data), .strb(wr_strb),
+        master_vip.write_req_single(
+          .addr(32'h3000), .data(32'hBAD0C0DE), .strb(4'hF),
           .id(4'd0), .resp(resp)
         );
-        slave_vip.write_resp_burst(.data(wr_data), .strb(wr_strb), .resp(2'b10));
+        slave_vip.write_resp_single(.data(32'hBAD0C0DE), .strb(4'hF), .resp(2'b10));
       join
 
       assert(resp == 2'b10) else $error("Expected SLVERR (2) but got resp=%0h", resp);
 
-      // Read with SLVERR - use separate array for slave
-      slave_rd_data = new[1];
-      slave_rd_data[0] = '0;
+      // Read with SLVERR
       fork
-        master_vip.read_req_single(.addr(32'h3000), .data(rd_data[0]), .resp(resp), .id(4'd0));
-        slave_vip.read_resp_burst(.data(slave_rd_data), .resp(2'b10));
+        master_vip.read_req_single(.addr(32'h3000), .data(rd_data), .resp(resp), .id(4'd0));
+        slave_vip.read_resp_single(.data('0), .resp(2'b10));
       join
 
       assert(resp == 2'b10) else $error("Expected SLVERR (2) on read but got resp=%0h", resp);
@@ -207,9 +185,7 @@ module axi4_full_vip_tb;
 
     `TEST_CASE("Backpressure Write")
     begin
-      logic [DATA_WIDTH-1:0] wr_data[];
-      logic [STRB_WIDTH-1:0] wr_strb[];
-      logic [1:0]            resp;
+      logic [1:0] resp;
 
       $display("\n--- Test 4: Backpressure Write (AW stall 1-3, W stall 0-2) ---");
 
@@ -217,17 +193,12 @@ module axi4_full_vip_tb;
         .enable(1'b1), .min_cycles(0), .max_cycles(3)
       );
 
-      wr_data = new[1];
-      wr_strb = new[1];
-      wr_data[0] = 32'hAABBCCDD;
-      wr_strb[0] = 4'hF;
-
       fork
-        master_vip.write_req_burst(
-          .addr(32'h4000), .data(wr_data), .strb(wr_strb),
+        master_vip.write_req_single(
+          .addr(32'h4000), .data(32'hAABBCCDD), .strb(4'hF),
           .id(4'd1), .resp(resp)
         );
-        slave_vip.write_resp_burst(.data(wr_data), .strb(wr_strb), .resp(2'b00));
+        slave_vip.write_resp_single(.data(32'hAABBCCDD), .strb(4'hF), .resp(2'b00));
       join
 
       assert(resp == 2'b00) else $error("Backpressure write response mismatch resp=%0h", resp);
@@ -240,8 +211,7 @@ module axi4_full_vip_tb;
 
     `TEST_CASE("Backpressure Read")
     begin
-      logic [DATA_WIDTH-1:0] rd_data[];
-      logic [DATA_WIDTH-1:0] slave_rd_data[];
+      logic [DATA_WIDTH-1:0] rd_data;
       logic [1:0]            resp;
 
       $display("\n--- Test 5: Backpressure Read (AR stall 2-5, R stall 1-3) ---");
@@ -250,20 +220,14 @@ module axi4_full_vip_tb;
         .enable(1'b1), .min_cycles(1), .max_cycles(5)
       );
 
-      rd_data = new[1];
-
-      // Use separate array for slave to avoid race with master writing rd_data
-      slave_rd_data = new[1];
-      slave_rd_data[0] = 32'h12345678;
-
       fork
-        master_vip.read_req_single(.addr(32'h5000), .data(rd_data[0]), .resp(resp), .id(4'd2));
-        slave_vip.read_resp_burst(.data(slave_rd_data), .resp(2'b00));
+        master_vip.read_req_single(.addr(32'h5000), .data(rd_data), .resp(resp), .id(4'd2));
+        slave_vip.read_resp_single(.data(32'h12345678), .resp(2'b00));
       join
 
       assert(resp == 2'b00) else $error("Backpressure read response mismatch resp=%0h", resp);
-      assert(rd_data[0] == 32'h12345678)
-        else $error("Backpressure read data mismatch exp=%h got=%h", 32'h12345678, rd_data[0]);
+      assert(rd_data == 32'h12345678)
+        else $error("Backpressure read data mismatch exp=%h got=%h", 32'h12345678, rd_data);
 
       // Reset backpressure
       slave_vip.configure_backpressure();
@@ -276,8 +240,6 @@ module axi4_full_vip_tb;
       logic [1:0]            wr_resp;
       logic [DATA_WIDTH-1:0] rd_data[4];
       logic [1:0]            rd_resp[4];
-      logic [DATA_WIDTH-1:0] wr_data[];
-      logic [STRB_WIDTH-1:0] wr_strb[];
       logic [ID_WIDTH-1:0]   rd_id;
       logic                  rd_last;
 
@@ -285,20 +247,15 @@ module axi4_full_vip_tb;
 
       // Write 4 locations
       for (int i = 0; i < 4; i++) begin
-        wr_data = new[1];
-        wr_strb = new[1];
-        wr_data[0] = 32'h11111111 * (i + 1);
-        wr_strb[0] = 4'hF;
-
         fork
           begin
             automatic int idx = i;
-            master_vip.write_req_single(.addr(32'h6000 + idx*4), .data(wr_data[0]), .strb(4'hF),
-                                        .id(idx[3:0]), .resp(wr_resp));
+            master_vip.write_req_single(.addr(32'h6000 + idx*4), .data(32'h11111111 * (idx + 1)),
+                                        .strb(4'hF), .id(idx[3:0]), .resp(wr_resp));
           end
           begin
             automatic int idx = i;
-            slave_vip.write_resp_burst(.data(wr_data), .strb(wr_strb), .resp(2'b00));
+            slave_vip.write_resp_single(.data(32'h11111111 * (idx + 1)), .strb(4'hF), .resp(2'b00));
           end
         join
         assert(wr_resp == 2'b00) else $error("Outstanding write %0d response mismatch", i);
@@ -313,10 +270,7 @@ module axi4_full_vip_tb;
         end
         begin
           for (int i = 0; i < 4; i++) begin
-            automatic logic [DATA_WIDTH-1:0] slave_rd_buf[];
-            slave_rd_buf = new[1];
-            slave_rd_buf[0] = 32'h11111111 * (i + 1);
-            slave_vip.read_resp_burst(.data(slave_rd_buf), .resp(2'b00));
+            slave_vip.read_resp_single(.data(32'h11111111 * (i + 1)), .resp(2'b00));
           end
         end
         begin
