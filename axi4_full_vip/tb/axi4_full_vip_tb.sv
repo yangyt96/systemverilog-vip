@@ -276,7 +276,7 @@ module axi4_full_vip_tb;
         end
         begin
           for (int i = 0; i < 4; i++) begin
-            master_vip.recv_rchn(.data(rd_data[i]), .resp(rd_resp[i]), .id(rd_id), .last(rd_last), .ruser(rd_ruser));
+            master_vip.recv_rchn(.data(rd_data[i]), .resp(rd_resp[i]), .id(rd_id), .last(rd_last), .user(rd_ruser));
           end
         end
       join

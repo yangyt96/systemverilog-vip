@@ -161,7 +161,7 @@ class Axi4FullSlaveVIP #(
                             output logic [LOCK_WIDTH-1:0] lock,
                             output logic [QOS_WIDTH-1:0] qos,
                             output logic [REGION_WIDTH-1:0] region,
-                            output logic [AWUSER_WIDTH-1:0] awuser);
+                            output logic [AWUSER_WIDTH-1:0] user);
     int unsigned cycles;
 
     wait_reset_release();
@@ -190,7 +190,7 @@ class Axi4FullSlaveVIP #(
     lock   = vif.awlock;
     qos    = vif.awqos;
     region = vif.awregion;
-    awuser = vif.awuser;
+    user   = vif.awuser;
 
     $display("[%0t] %s RX AW addr=%h id=%0d len=%0d size=%0d burst=%0d cache=%h lock=%h qos=%h region=%h",
              $time, vip_name, addr, id, len, size, burst, cache, lock, qos, region);
@@ -199,7 +199,7 @@ class Axi4FullSlaveVIP #(
   endtask
 
   task automatic recv_wchn(output logic [DATA_WIDTH-1:0] data, output logic [STRB_WIDTH-1:0] strb,
-                           output logic last, output logic [WUSER_WIDTH-1:0] wuser);
+                           output logic last, output logic [WUSER_WIDTH-1:0] user);
     int unsigned cycles;
 
     vif.wready <= 1'b1;
@@ -212,24 +212,24 @@ class Axi4FullSlaveVIP #(
       end
     end while (!vif.wvalid);
 
-    data  = vif.wdata;
-    strb  = vif.wstrb;
-    last  = vif.wlast;
-    wuser = vif.wuser;
+    data = vif.wdata;
+    strb = vif.wstrb;
+    last = vif.wlast;
+    user = vif.wuser;
 
-    $display("[%0t] %s RX W data=%h strb=%h last=%b wuser=%h", $time, vip_name, data, strb, last, wuser);
+    $display("[%0t] %s RX W data=%h strb=%h last=%b user=%h", $time, vip_name, data, strb, last, user);
 
     vif.wready <= 1'b0;
   endtask
 
   // Send write response (B)
   task automatic send_bchn(input logic [ID_WIDTH-1:0] id, input logic [1:0] resp = 2'b00,
-                           input logic [BUSER_WIDTH-1:0] buser = '0);
+                           input logic [BUSER_WIDTH-1:0] user = '0);
     int unsigned cycles;
 
     vif.bid    <= id;
     vif.bresp  <= resp;
-    vif.buser  <= buser;
+    vif.buser  <= user;
     vif.bvalid <= 1'b1;
 
     cycles = 0;
@@ -241,7 +241,7 @@ class Axi4FullSlaveVIP #(
       end
     end while (!(vif.bready));
 
-    $display("[%0t] %s TX B id=%0d resp=%0h buser=%0h", $time, vip_name, id, resp, buser);
+    $display("[%0t] %s TX B id=%0d resp=%0h user=%0h", $time, vip_name, id, resp, user);
 
     vif.bvalid <= 1'b0;
   endtask
@@ -263,15 +263,15 @@ class Axi4FullSlaveVIP #(
     logic [LOCK_WIDTH-1:0] lock;
     logic [QOS_WIDTH-1:0] qos;
     logic [REGION_WIDTH-1:0] region;
-    logic [AWUSER_WIDTH-1:0] awuser;
-    logic [WUSER_WIDTH-1:0] wuser;
+    logic [AWUSER_WIDTH-1:0] aw_user;
+    logic [WUSER_WIDTH-1:0] w_user;
     int unsigned beat_count;
     logic [DATA_WIDTH-1:0] beat_data;
     logic [STRB_WIDTH-1:0] beat_strb;
     bit beat_last;
 
     apply_stall();
-    recv_awchn(addr, id, len, size, burst, prot, cache, lock, qos, region, awuser);
+    recv_awchn(addr, id, len, size, burst, prot, cache, lock, qos, region, aw_user);
     beat_count = int'(len) + 1;
 
     data = new[beat_count];
@@ -279,7 +279,7 @@ class Axi4FullSlaveVIP #(
 
     for (int i = 0; i < beat_count; i++) begin
       apply_stall();
-      recv_wchn(beat_data, beat_strb, beat_last, wuser);
+      recv_wchn(beat_data, beat_strb, beat_last, w_user);
       data[i] = beat_data;
       strb[i] = beat_strb;
       if (beat_last && i < (beat_count - 1)) begin
@@ -312,16 +312,16 @@ class Axi4FullSlaveVIP #(
     logic [LOCK_WIDTH-1:0] lock;
     logic [QOS_WIDTH-1:0] qos;
     logic [REGION_WIDTH-1:0] region;
-    logic [AWUSER_WIDTH-1:0] awuser;
+    logic [AWUSER_WIDTH-1:0] aw_user;
     logic [DATA_WIDTH-1:0] beat_data;
     logic [STRB_WIDTH-1:0] beat_strb;
     bit beat_last;
-    logic [WUSER_WIDTH-1:0] wuser;
+    logic [WUSER_WIDTH-1:0] w_user;
 
     apply_stall();
-    recv_awchn(addr, id, len, size, burst, prot, cache, lock, qos, region, awuser);
+    recv_awchn(addr, id, len, size, burst, prot, cache, lock, qos, region, aw_user);
     apply_stall();
-    recv_wchn(beat_data, beat_strb, beat_last, wuser);
+    recv_wchn(beat_data, beat_strb, beat_last, w_user);
     apply_stall();
     send_bchn(id, resp);
 
@@ -341,7 +341,7 @@ class Axi4FullSlaveVIP #(
                             output logic [LOCK_WIDTH-1:0] lock,
                             output logic [QOS_WIDTH-1:0] qos,
                             output logic [REGION_WIDTH-1:0] region,
-                            output logic [ARUSER_WIDTH-1:0] aruser);
+                            output logic [ARUSER_WIDTH-1:0] user);
     int unsigned cycles;
 
     wait_reset_release();
@@ -370,7 +370,7 @@ class Axi4FullSlaveVIP #(
     lock   = vif.arlock;
     qos    = vif.arqos;
     region = vif.arregion;
-    aruser = vif.aruser;
+    user   = vif.aruser;
 
     $display("[%0t] %s RX AR addr=%h id=%0d len=%0d size=%0d burst=%0d cache=%h lock=%h qos=%h region=%h",
              $time, vip_name, addr, id, len, size, burst, cache, lock, qos, region);
@@ -381,14 +381,14 @@ class Axi4FullSlaveVIP #(
   // Send read data (single beat) — symmetric with Master's recv_rchn (scalar)
   task automatic send_rchn(input logic [DATA_WIDTH-1:0] data, input logic [ID_WIDTH-1:0] id,
                            input logic [1:0] resp = 2'b00, input logic last = 1'b1,
-                           input logic [RUSER_WIDTH-1:0] ruser = '0);
+                           input logic [RUSER_WIDTH-1:0] user = '0);
     int unsigned cycles;
 
     vif.rid    <= id;
     vif.rdata  <= data;
     vif.rresp  <= resp;
     vif.rlast  <= last;
-    vif.ruser  <= ruser;
+    vif.ruser  <= user;
     vif.rvalid <= 1'b1;
 
     cycles = 0;
@@ -421,11 +421,11 @@ class Axi4FullSlaveVIP #(
     logic [LOCK_WIDTH-1:0] lock;
     logic [QOS_WIDTH-1:0] qos;
     logic [REGION_WIDTH-1:0] region;
-    logic [ARUSER_WIDTH-1:0] aruser;
+    logic [ARUSER_WIDTH-1:0] ar_user;
     int unsigned beat_count;
 
     apply_stall();
-    recv_archn(addr, id, len, size, burst, prot, cache, lock, qos, region, aruser);
+    recv_archn(addr, id, len, size, burst, prot, cache, lock, qos, region, ar_user);
     beat_count = int'(len) + 1;
 
     assert (data.size() >= beat_count)
@@ -461,11 +461,11 @@ class Axi4FullSlaveVIP #(
     logic [LOCK_WIDTH-1:0] lock;
     logic [QOS_WIDTH-1:0] qos;
     logic [REGION_WIDTH-1:0] region;
-    logic [ARUSER_WIDTH-1:0] aruser;
+    logic [ARUSER_WIDTH-1:0] ar_user;
     int unsigned beat_count;
 
     apply_stall();
-    recv_archn(addr, id, len, size, burst, prot, cache, lock, qos, region, aruser);
+    recv_archn(addr, id, len, size, burst, prot, cache, lock, qos, region, ar_user);
     beat_count = int'(len) + 1;
 
     assert (beat_count == 1)

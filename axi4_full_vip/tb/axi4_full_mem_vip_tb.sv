@@ -308,10 +308,10 @@ module axi4_full_mem_vip_tb;
         end
 
         begin
-          master_vip.recv_bchn(.resp(resp[0]), .id(b_id), .buser(b_buser));
-          master_vip.recv_bchn(.resp(resp[1]), .id(b_id), .buser(b_buser));
-          master_vip.recv_bchn(.resp(resp[2]), .id(b_id), .buser(b_buser));
-          master_vip.recv_bchn(.resp(resp[3]), .id(b_id), .buser(b_buser));
+          master_vip.recv_bchn(.resp(resp[0]), .id(b_id), .user(b_buser));
+          master_vip.recv_bchn(.resp(resp[1]), .id(b_id), .user(b_buser));
+          master_vip.recv_bchn(.resp(resp[2]), .id(b_id), .user(b_buser));
+          master_vip.recv_bchn(.resp(resp[3]), .id(b_id), .user(b_buser));
         end
       join
 
@@ -356,7 +356,7 @@ module axi4_full_mem_vip_tb;
 
         begin
           for(int i = 0; i < 4; i++) begin
-            master_vip.recv_rchn(.data(rd_data[i]), .resp(rd_resp[i]), .id(rd_id), .last(rd_last), .ruser(rd_ruser));
+            master_vip.recv_rchn(.data(rd_data[i]), .resp(rd_resp[i]), .id(rd_id), .last(rd_last), .user(rd_ruser));
           end
         end
 
@@ -479,9 +479,9 @@ module axi4_full_mem_vip_tb;
         end
         begin
           // mem_vip is single-outstanding, so responses are in-order
-          master_vip.recv_rchn(.data(rd_data[0]), .resp(rd_resp[0]), .id(rd_id), .last(rd_last), .ruser(rd_ruser));
+          master_vip.recv_rchn(.data(rd_data[0]), .resp(rd_resp[0]), .id(rd_id), .last(rd_last), .user(rd_ruser));
           assert(rd_id == 4'd1) else $error("Expected id=1 first but got id=%0d", rd_id);
-          master_vip.recv_rchn(.data(rd_data[1]), .resp(rd_resp[1]), .id(rd_id), .last(rd_last), .ruser(rd_ruser));
+          master_vip.recv_rchn(.data(rd_data[1]), .resp(rd_resp[1]), .id(rd_id), .last(rd_last), .user(rd_ruser));
           assert(rd_id == 4'd2) else $error("Expected id=2 second but got id=%0d", rd_id);
         end
       join
@@ -503,12 +503,12 @@ module axi4_full_mem_vip_tb;
       // Write using channel-level APIs to verify awuser/wuser are driven
       master_vip.send_awchn(.addr(32'hA000), .beat_count(1), .id(4'd0));
       master_vip.send_wchn(.data(32'hA5A5A5A5), .strb(4'hF), .last(1'b1));
-      master_vip.recv_bchn(.resp(resp), .id(rd_id), .buser(rd_ruser));
+      master_vip.recv_bchn(.resp(resp), .id(rd_id), .user(rd_ruser));
       assert(resp == 2'b00) else $error("Sideband write response mismatch resp=%0h", resp);
 
       // Read using channel-level APIs to verify aruser is driven
       master_vip.send_archn(.addr(32'hA000), .beat_count(1), .id(4'd0));
-      master_vip.recv_rchn(.data(rd_data), .resp(resp), .id(rd_id), .last(rd_last), .ruser(rd_ruser));
+      master_vip.recv_rchn(.data(rd_data), .resp(resp), .id(rd_id), .last(rd_last), .user(rd_ruser));
       assert(resp == 2'b00) else $error("Sideband read response mismatch resp=%0h", resp);
       assert(rd_data == 32'hA5A5A5A5)
         else $error("Sideband read data mismatch exp=%h got=%h", 32'hA5A5A5A5, rd_data);
