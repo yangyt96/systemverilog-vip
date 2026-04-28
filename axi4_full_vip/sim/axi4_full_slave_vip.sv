@@ -408,7 +408,7 @@ class Axi4FullSlaveVIP #(
   // Single-beat Read: recv_archn + send_rchn (1 beat)
   // Symmetric with Master's read_req_single()
   // ─────────────────────────────────────────────
-  task automatic read_resp_single(output logic [DATA_WIDTH-1:0] data,
+  task automatic read_resp_single(input logic [DATA_WIDTH-1:0] data,
                                   input logic [1:0] resp = 2'b00);
     logic [ADDR_WIDTH-1:0] addr;
     logic [ID_WIDTH-1:0] id;
