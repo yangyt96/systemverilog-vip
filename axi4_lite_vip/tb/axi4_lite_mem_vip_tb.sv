@@ -104,7 +104,7 @@ module axi4_lite_mem_vip_tb;
     data = build_wdata(index);
     strb = build_wstrb(index);
 
-    master.write(addr, data, strb, master_resp);
+    master.write_req_single(addr, data, strb, master_resp);
 
     assert(master_resp == 2'b00) else $error("Write response mismatch at %0d", index);
   endtask
@@ -118,7 +118,7 @@ module axi4_lite_mem_vip_tb;
     addr          = build_write_addr(index);
     expected_data = apply_wstrb(build_wdata(index), build_wstrb(index));
 
-    master.read(addr, master_data, master_resp);
+    master.read_req_single(addr, master_data, master_resp);
 
     assert(master_resp == 2'b00) else $error("Read response mismatch at %0d", index);
     assert(master_data == expected_data) else $error("Read data mismatch at %0d", index);

@@ -10,8 +10,12 @@
 //   - recv_rchn()  : Read Data Channel
 //
 // High-level convenience tasks:
-//   - write() : send_awchn + send_wchn + recv_bchn
-//   - read()  : send_archn + recv_rchn
+//   - write_req_single() : send_awchn + send_wchn + recv_bchn
+//   - read_req_single()  : send_archn + recv_rchn
+//
+// Backpressure architecture (following AXI4-Full Master's pattern):
+//   - apply_pause() is called ONLY in high-level tasks, NOT in channel-level APIs
+//   - Channel-level APIs are pure handshake tasks without pause insertion
 
 class Axi4LiteMasterVIP #(
     int ADDR_WIDTH = 32,
@@ -83,11 +87,10 @@ class Axi4LiteMasterVIP #(
 
   // ─────────────────────────────────────────────
   // Write Address Channel (AW)
+  // Note: apply_pause() is called in high-level tasks, not here
   // ─────────────────────────────────────────────
   task automatic send_awchn(input logic [ADDR_WIDTH-1:0] addr, input logic [2:0] prot = 3'b000);
     int unsigned cycles;
-
-    apply_pause();
 
     cycles = 0;
     do begin
@@ -108,12 +111,11 @@ class Axi4LiteMasterVIP #(
 
   // ─────────────────────────────────────────────
   // Write Data Channel (W)
+  // Note: apply_pause() is called in high-level tasks, not here
   // ─────────────────────────────────────────────
   task automatic send_wchn(input logic [DATA_WIDTH-1:0] data,
                            input logic [STRB_WIDTH-1:0] strb = '1);
     int unsigned cycles;
-
-    apply_pause();
 
     cycles = 0;
     do begin
@@ -132,11 +134,10 @@ class Axi4LiteMasterVIP #(
 
   // ─────────────────────────────────────────────
   // Write Response Channel (B)
+  // Note: apply_pause() is called in high-level tasks, not here
   // ─────────────────────────────────────────────
   task automatic recv_bchn(output logic [1:0] resp);
     int unsigned cycles;
-
-    apply_pause();
 
     cycles = 0;
     do begin
@@ -156,13 +157,17 @@ class Axi4LiteMasterVIP #(
 
   // ─────────────────────────────────────────────
   // High-level Write (AW + W + B)
+  // Symmetric with AXI4-Full Master's write_req_single()
   // ─────────────────────────────────────────────
-  task write(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
-             input logic [STRB_WIDTH-1:0] strb = '1, output logic [1:0] resp,
-             input logic [2:0] prot = 3'b000);
+  task write_req_single(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
+                        input logic [STRB_WIDTH-1:0] strb = '1, output logic [1:0] resp,
+                        input logic [2:0] prot = 3'b000);
 
+    apply_pause();
     send_awchn(addr, prot);
+    apply_pause();
     send_wchn(data, strb);
+    apply_pause();
     recv_bchn(resp);
 
     $display("[%0t] %s TX WRITE addr=%h data=%h strb=%h prot=%0h bresp=%0h", $time, vip_name, addr,
@@ -171,11 +176,10 @@ class Axi4LiteMasterVIP #(
 
   // ─────────────────────────────────────────────
   // Read Address Channel (AR)
+  // Note: apply_pause() is called in high-level tasks, not here
   // ─────────────────────────────────────────────
   task automatic send_archn(input logic [ADDR_WIDTH-1:0] addr, input logic [2:0] prot = 3'b000);
     int unsigned cycles;
-
-    apply_pause();
 
     vif.araddr  <= addr;
     vif.arprot  <= prot;
@@ -197,11 +201,10 @@ class Axi4LiteMasterVIP #(
 
   // ─────────────────────────────────────────────
   // Read Data Channel (R)
+  // Note: apply_pause() is called in high-level tasks, not here
   // ─────────────────────────────────────────────
   task automatic recv_rchn(output logic [DATA_WIDTH-1:0] data, output logic [1:0] resp);
     int unsigned cycles;
-
-    apply_pause();
 
     cycles = 0;
     do begin
@@ -221,11 +224,14 @@ class Axi4LiteMasterVIP #(
 
   // ─────────────────────────────────────────────
   // High-level Read (AR + R)
+  // Symmetric with AXI4-Full Master's read_req_single()
   // ─────────────────────────────────────────────
-  task read(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
-            output logic [1:0] resp, input logic [2:0] prot = 3'b000);
+  task read_req_single(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
+                       output logic [1:0] resp, input logic [2:0] prot = 3'b000);
 
+    apply_pause();
     send_archn(addr, prot);
+    apply_pause();
     recv_rchn(data, resp);
 
     $display("[%0t] %s RX READ  addr=%h data=%h prot=%0h rresp=%0h", $time, vip_name, addr, data,
