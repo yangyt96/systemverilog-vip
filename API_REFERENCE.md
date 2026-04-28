@@ -96,14 +96,14 @@ Synthesizable AXI4-Lite slave with byte-addressed storage and `WSTRB` support.
 
 ### Master VIP — [`axi4_full_master_vip.sv`](axi4_full_vip/sim/axi4_full_master_vip.sv)
 
-#### High-level APIs
+#### High-level APIs (request side)
 
 | Method | Description |
 |--------|-------------|
-| `write(addr, data, strb, id, len, size, burst, prot, resp)` | Single-beat write transaction |
-| `read(addr, data, resp, id, len, size, burst, prot)` | Single-beat read transaction |
-| `write_burst(addr, data[], strb[], id, size, burst, prot, resp)` | Burst write transaction |
-| `read_burst(addr, beat_count, data[], resp[], id, size, burst, prot)` | Burst read transaction |
+| `write_req_single(addr, data, strb, id, resp)` | Single-beat write request |
+| `read_req_single(addr, data, resp, id)` | Single-beat read request |
+| `write_req_burst(addr, data[], strb[], id, size, burst, prot, resp)` | Burst write request |
+| `read_req_burst(addr, beat_count, data[], resp[], id, size, burst, prot)` | Burst read request |
 
 #### Channel-level APIs (fine-grained control)
 
@@ -124,15 +124,34 @@ Synthesizable AXI4-Lite slave with byte-addressed storage and `WSTRB` support.
 
 ### Slave VIP — [`axi4_full_slave_vip.sv`](axi4_full_vip/sim/axi4_full_slave_vip.sv)
 
+API is symmetric with Master VIP (`send_*` ↔ `recv_*`).
+
+#### Channel-level APIs
+
 | Method | Description |
 |--------|-------------|
-| `recv_awchn(addr, beat_count, id, size, burst, prot)` | Receive write address |
-| `recv_wchn(data[], strb[])` | Receive write data (all beats) |
-| `send_bchn(resp)` | Send write response |
-| `recv_archn(addr, beat_count, id, size, burst, prot)` | Receive read address |
-| `send_rchn(data[], resp[], id)` | Send read data (all beats) |
+| `recv_awchn(addr, id, len, size, burst, prot)` | Receive write address |
+| `recv_wchn(data, strb, last)` | Receive single write data beat |
+| `send_bchn(id, resp)` | Send write response |
+| `recv_archn(addr, id, len, size, burst, prot)` | Receive read address |
+| `send_rchn(data, id, resp, last)` | Send single read data beat (scalar) |
+
+#### High-level APIs (symmetric with Master)
+
+| Method | Description | Master counterpart |
+|--------|-------------|-------------------|
+| `write_resp_burst(data[], strb[], resp)` | Respond to write burst | `write_req_burst()` |
+| `write_resp_single(data, strb, resp)` | Respond to single write | `write_req_single()` |
+| `read_resp_burst(data[], resp)` | Respond to read burst | `read_req_burst()` |
+| `read_resp_single(data, resp)` | Respond to single read | `read_req_single()` |
+
+#### Configuration
+
+| Method | Description |
+|--------|-------------|
 | `configure_backpressure(enable, min_cycles, max_cycles)` | Configure random stall on all channels |
 | `configure_timeout(cycles)` | Set transaction timeout |
+| `clear_outputs()` | Initialize all driven signals to zero |
 
 ### Memory VIP (hardware module) — [`axi4_full_mem_vip.sv`](axi4_full_vip/sim/axi4_full_mem_vip.sv)
 

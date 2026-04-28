@@ -72,12 +72,12 @@ master.read_req_burst(addr, beat_count, data_array, resp_array, id, size, burst,
 ```systemverilog
 // Write channel
 master.send_awchn(addr, beat_count, id, size, burst, prot);
-master.send_wchn(data_array, strb_array);
+master.send_wchn(data, strb, last);          // single beat (scalar)
 master.recv_bchn(resp);
 
 // Read channel
 master.send_archn(addr, beat_count, id, size, burst, prot);
-master.recv_rchn(data_array, resp_array, id);
+master.recv_rchn(data, resp, id, last);      // single beat (scalar)
 ```
 
 **Configuration:**
@@ -154,9 +154,9 @@ byte-addressed array, returns `OKAY` responses, preserves response IDs, handles
 | Test Case | Description |
 |-----------|-------------|
 | **Simple Write-Read** | Single write then read |
-| **Multiple Write-Reads** | 8 write-read pairs with different IDs |
+| **Multiple Write-Reads** | 4 write-read pairs with different IDs |
 | **Partial Write Byte Mask** | Write with varying `wstrb` patterns |
-| **INCR Burst Write-Read** | 8-beat INCR burst write then read |
+| **INCR Burst Write-Read** | 4-beat INCR burst write then read |
 | **FIXED Burst Byte Mask** | FIXED burst with byte mask |
 | **Multiple Outstanding Writes** | 4 outstanding writes before reading back |
 | **Multiple Outstanding Reads** | 4 outstanding reads |

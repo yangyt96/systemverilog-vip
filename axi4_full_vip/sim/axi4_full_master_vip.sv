@@ -214,11 +214,10 @@ class Axi4FullMasterVIP #(
       end
     end while (!vif.bvalid);
 
-    $display("[%0t] %s RX B bresp=%0h", $time, vip_name, resp);
-
     resp = vif.bresp;
     vif.bready <= 1'b0;
-    // @(posedge vif.aclk);
+
+    $display("[%0t] %s RX B bresp=%0h", $time, vip_name, resp);
   endtask
 
   // Read Address Channel - Send read address phase
@@ -231,21 +230,20 @@ class Axi4FullMasterVIP #(
     assert (beat_count > 0)
     else $fatal(1, "%s send_archn called with beat_count=0", vip_name);
 
-    vif.arid     <= id;
-    vif.araddr   <= addr;
-    vif.arlen    <= LEN_WIDTH'(beat_count - 1);
-    vif.arsize   <= size;
-    vif.arburst  <= burst;
-    vif.arprot   <= prot;
-    vif.arcache  <= 4'b0000;
-    vif.arlock   <= 1'b0;
-    vif.arqos    <= 4'b0000;
-    vif.arregion <= 4'b0000;
-    vif.aruser   <= '0;
-    vif.arvalid  <= 1'b1;
-
     cycles = 0;
     do begin
+      vif.arid     <= id;
+      vif.araddr   <= addr;
+      vif.arlen    <= LEN_WIDTH'(beat_count - 1);
+      vif.arsize   <= size;
+      vif.arburst  <= burst;
+      vif.arprot   <= prot;
+      vif.arcache  <= 4'b0000;
+      vif.arlock   <= 1'b0;
+      vif.arqos    <= 4'b0000;
+      vif.arregion <= 4'b0000;
+      vif.aruser   <= '0;
+      vif.arvalid  <= 1'b1;
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
@@ -287,14 +285,19 @@ class Axi4FullMasterVIP #(
   task write_req_single(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
                         input logic [STRB_WIDTH-1:0] strb = '1, input logic [ID_WIDTH-1:0] id = '0,
                         output logic [1:0] resp);
+    apply_pause();
     send_awchn(addr, 1, id);
+    apply_pause();
     send_wchn(data, strb, 1'b1);
+    apply_pause();
     recv_bchn(resp);
   endtask
 
   // Single-beat read transaction (request side)
   task read_req_single(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
                        output logic [1:0] resp, input logic [ID_WIDTH-1:0] id = '0);
+    // act_id/act_last are required because recv_rchn uses ref parameters
+    // (cannot use empty .id()/.last() syntax with ref)
     logic [ID_WIDTH-1:0] act_id;
     logic act_last;
     apply_pause();

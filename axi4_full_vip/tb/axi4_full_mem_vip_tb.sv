@@ -317,9 +317,10 @@ module axi4_full_mem_vip_tb;
         assert(resp[i] == 2'b00) else $error("Outstanding write response mismatch id=%0d resp=%0h", i, resp[i]);
       end
 
+      // Read back each address with the correct ID
       check_single_read(32'h6000, 32'h11111111, 4'd0);
-      check_single_read(32'h6008, 32'h33333333, 4'd1);
-      check_single_read(32'h6004, 32'h22222222, 4'd2);
+      check_single_read(32'h6004, 32'h22222222, 4'd1);
+      check_single_read(32'h6008, 32'h33333333, 4'd2);
       check_single_read(32'h600C, 32'h44444444, 4'd3);
     end
 
@@ -327,15 +328,19 @@ module axi4_full_mem_vip_tb;
     begin
       logic [DATA_WIDTH-1:0] rd_data[4];
       logic [1:0] rd_resp[4];
-      logic [1:0] wr_resp;
+      logic [1:0] wr_resp[4];
       logic [ID_WIDTH-1:0] rd_id;
       logic rd_last;
       $display("\n--- Test 8: Multiple Outstanding Reads ---");
 
-      master_vip.write_req_single(.addr(32'h6000), .data(32'h11111111), .resp(wr_resp));
-      master_vip.write_req_single(.addr(32'h6004), .data(32'h22222222), .resp(wr_resp));
-      master_vip.write_req_single(.addr(32'h6008), .data(32'h33333333), .resp(wr_resp));
-      master_vip.write_req_single(.addr(32'h600C), .data(32'h44444444), .resp(wr_resp));
+      master_vip.write_req_single(.addr(32'h6000), .data(32'h11111111), .resp(wr_resp[0]));
+      assert(wr_resp[0] == 2'b00) else $error("Write 0 response mismatch resp=%0h", wr_resp[0]);
+      master_vip.write_req_single(.addr(32'h6004), .data(32'h22222222), .resp(wr_resp[1]));
+      assert(wr_resp[1] == 2'b00) else $error("Write 1 response mismatch resp=%0h", wr_resp[1]);
+      master_vip.write_req_single(.addr(32'h6008), .data(32'h33333333), .resp(wr_resp[2]));
+      assert(wr_resp[2] == 2'b00) else $error("Write 2 response mismatch resp=%0h", wr_resp[2]);
+      master_vip.write_req_single(.addr(32'h600C), .data(32'h44444444), .resp(wr_resp[3]));
+      assert(wr_resp[3] == 2'b00) else $error("Write 3 response mismatch resp=%0h", wr_resp[3]);
 
       fork
 

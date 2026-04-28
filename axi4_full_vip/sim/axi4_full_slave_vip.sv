@@ -192,9 +192,9 @@ class Axi4FullSlaveVIP #(
                            output logic last);
     int unsigned cycles;
 
+    vif.wready <= 1'b1;
     cycles = 0;
     do begin
-      vif.wready <= 1'b1;
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
@@ -209,7 +209,6 @@ class Axi4FullSlaveVIP #(
     $display("[%0t] %s RX W data=%h strb=%h last=%b", $time, vip_name, data, strb, last);
 
     vif.wready <= 1'b0;
-    // @(posedge vif.aclk);
   endtask
 
   // Send write response (B)
@@ -233,7 +232,6 @@ class Axi4FullSlaveVIP #(
     $display("[%0t] %s TX B id=%0d resp=%0h", $time, vip_name, id, resp);
 
     vif.bvalid <= 1'b0;
-    // @(posedge vif.aclk);
   endtask
 
   // ─────────────────────────────────────────────
@@ -302,6 +300,10 @@ class Axi4FullSlaveVIP #(
     recv_wchn(beat_data, beat_strb, beat_last);
     apply_stall();
     send_bchn(id, resp);
+
+    if (beat_data !== data) begin
+      $warning("%s write_resp_single data mismatch: expected %h, got %h", vip_name, data, beat_data);
+    end
   endtask
 
   // ============ Read Channel Tasks ============
@@ -366,7 +368,6 @@ class Axi4FullSlaveVIP #(
     $display("[%0t] %s TX R data=%h id=%0d resp=%0h last=%b", $time, vip_name, data, id, resp, last);
 
     vif.rvalid <= 0;
-    // @(posedge vif.aclk);
   endtask
 
   // ─────────────────────────────────────────────
