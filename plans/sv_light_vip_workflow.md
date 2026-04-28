@@ -6,7 +6,7 @@
 > 语言: 简体中文 (zh-CN) — 与用户沟通语言
 > Commit 语言: 英语 — 代码提交信息使用英语
 >
-> 版本: v2.4 — 新增 Phase 0-2 API 文档读取、Phase 5 文档更新步骤、AI 窗口切换支持
+> 版本: v2.6 — 新增 Phase 5 文档检查，在验证和提交之间增加文档必要性检测步骤
 
 ---
 
@@ -21,6 +21,7 @@
 7. **精确提交** — 只提交本次修改的文件，使用 `git add <file1> <file2>` 而非 `git add -A`
 8. **AI 窗口可切换性** — 工作流文档是唯一"记忆载体"，任何 AI 窗口通过读取本文件即可无缝继续任务
 9. **文档与代码同步** — 修改代码前/后必须同步更新 README 和 API 文档
+10. **文档先行提交** — Phase 5 检查文档必要性，更新后再进入 Phase 6 提交
 
 ---
 
@@ -192,48 +193,78 @@
    - 确认所有测试用例通过（P=全部, S=0, F=0）
    - 新增测试后，总测试数应增加，且原有测试不受影响
 
-### Phase 5: 提交
+### Phase 5: 文档检查
 
 ```
 输入: 验证通过的代码
+输出: 文档更新决策（是否更新 README/doc/API_REFERENCE/repo_analysis）
+```
+
+在提交代码前，必须检查本次修改是否需要更新文档。
+
+**检查清单**:
+
+1. **判断是否需要更新文档** — 逐项检查以下变更类型：
+
+  | 变更类型 | 需要更新的文档 | 检查方法 |
+  |----------|---------------|---------|
+  | 新增 API / 修改 API 签名 | [`API_REFERENCE.md`](API_REFERENCE.md) + 对应 VIP 的 [`doc/README.md`](.) | `git diff` 查看是否有 function/task 新增或参数变更 |
+  | 新增 VIP | [`README.md`](README.md) + [`API_REFERENCE.md`](API_REFERENCE.md) | 检查是否有新目录 `*/sim/*_vip_pkg.sv` |
+  | 修改事务流程/协议行为 | 对应 VIP 的 [`doc/README.md`](.) | 检查是否修改了 high-level task 的实现逻辑 |
+  | 架构变更/改进记录 | [`plans/repo_analysis.md`](plans/repo_analysis.md) | 检查是否完成了一项计划中的改进项 |
+  | 纯代码风格/格式化 | 无需更新 | 仅修改缩进、空格、注释等 |
+  | Bug 修复（不影响 API） | 无需更新 | 修复内部逻辑，对外接口不变 |
+  | 新增测试用例 | 无需更新 | 测试文件不在文档范围内 |
+
+2. **执行文档更新**（如有必要）:
+
+  - **更新 [`README.md`](README.md)** — 新增 VIP 说明、功能列表变更、使用示例
+  - **更新对应 VIP 的 [`doc/README.md`](.)** — API 变更说明、新增功能描述、使用示例更新
+  - **更新 [`API_REFERENCE.md`](API_REFERENCE.md)** — 新增/修改的 API 签名、参数说明
+  - **更新 [`plans/repo_analysis.md`](plans/repo_analysis.md)** — 标记完成项、更新计数
+
+3. **确认文档与代码一致**:
+  - 文档中引用的 API 名称、参数、返回值必须与代码完全一致
+  - 新增功能必须在文档中有对应说明
+  - 删除的功能必须在文档中标记为已废弃或移除
+
+### Phase 6: 提交
+
+```
+输入: 验证通过的代码 + 更新后的文档
 ```
 
 **原则**:
 - 只提交本次修改涉及的文件，不提交无关文件
-- **先更新文档，再提交代码** — 确保 README 和 API 文档与代码同步
+- **文档必须先于代码提交前更新** — 确保 README 和 API 文档与代码同步
 
 **步骤**:
 
-1. **更新文档** — 在提交代码前，先更新相关文档：
-   - 更新目标 VIP 的 [`doc/README.md`](.) — API 变更、新增功能、使用示例
-   - 如有必要，更新 [`API_REFERENCE.md`](API_REFERENCE.md) — 新增/修改的 API 签名
-   - 如有必要，更新 [`plans/repo_analysis.md`](plans/repo_analysis.md) — 架构变更记录
+1. **查看当前修改状态**:
+  ```bash
+  git status
+  ```
 
-2. **查看当前修改状态**:
-   ```bash
-   git status
-   ```
+2. **只添加本次修改的文件**（精确指定路径）:
+  ```bash
+  git add <path/to/file1.sv> <path/to/file2.sv> <path/to/doc/README.md> ...
+  ```
 
-3. **只添加本次修改的文件**（精确指定路径）:
-   ```bash
-   git add <path/to/file1.sv> <path/to/file2.sv> <path/to/doc/README.md> ...
-   ```
+3. **确认只包含预期文件**:
+  ```bash
+  git status
+  ```
 
-4. **确认只包含预期文件**:
-   ```bash
-   git status
-   ```
+4. **提交**:
+  ```bash
+  git commit -m "<type>(<scope>): <description>
 
-5. **提交**:
-   ```bash
-   git commit -m "<type>(<scope>): <description>
+  - <change 1>
+  - <change 2>
+  ...
 
-   - <change 1>
-   - <change 2>
-   ...
-
-   All N/N tests passed, lint and format clean."
-   ```
+  All N/N tests passed, lint and format clean."
+  ```
 
 **不要使用**:
 - `git add -A` — 添加所有文件（包括无关文件）
@@ -263,7 +294,7 @@
 
 **提交后**: 主动询问用户"下一步做什么"，列出可选方向供用户选择。
 
-### Phase 6: 流程反思
+### Phase 7: 流程反思
 
 ```
 输入: 本次任务完成后的经验
@@ -281,7 +312,7 @@
 > **经验**: 每次任务都是改进 workflow 的机会。将新发现的陷阱、模式、最佳实践
 > 及时补充到文档中，形成正向循环。
 
-### Phase 7: 回顾与改进建议
+### Phase 8: 回顾与改进建议
 
 ```
 输入: 提交完成的代码 + 流程反思结果
@@ -389,9 +420,10 @@
 | Phase 2 | 读取设计决策记录（如有） |
 | Phase 3 | 读取目标 VIP 的当前代码 + 设计文档 |
 | Phase 4 | 运行 `make lint` / `make format-check` / `make test-<vip_name>` |
-| Phase 5 | 检查 `git status` + 更新 README/API 文档 + 提交 |
-| Phase 6 | 查看本次任务的 git log + 反思 |
-| Phase 7 | 查看 API_REFERENCE.md + 对比参考实现 |
+| Phase 5 | 检查文档必要性，更新 README/doc/API_REFERENCE/repo_analysis |
+| Phase 6 | 检查 `git status` + 更新 README/API 文档 + 提交 |
+| Phase 7 | 查看本次任务的 git log + 反思 |
+| Phase 8 | 查看 API_REFERENCE.md + 对比参考实现 |
 
 ---
 
