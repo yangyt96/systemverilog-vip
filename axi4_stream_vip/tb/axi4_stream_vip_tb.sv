@@ -223,53 +223,44 @@ module axi4_stream_vip_tb;
 
       for (int burst_idx = 0; burst_idx < 10; burst_idx++) begin
         int unsigned burst_length;
-        logic [DATA_WIDTH-1:0] tx_tdata[];
-        logic [KEEP_WIDTH-1:0] tx_tkeep[];
-        logic [KEEP_WIDTH-1:0] tx_tstrb[];
-        bit                    tx_tlast[];
-        logic [TID_WIDTH-1:0]  tx_tid[];
-        logic [TDEST_WIDTH-1:0] tx_tdest[];
+        logic [DATA_WIDTH-1:0]  tx_tdata[];
+        logic [KEEP_WIDTH-1:0]  tx_tkeep[];
+        logic [KEEP_WIDTH-1:0]  tx_tstrb[];
         logic [TUSER_WIDTH-1:0] tx_tuser[];
+        logic [TID_WIDTH-1:0]   tx_tid;
+        logic [TDEST_WIDTH-1:0] tx_tdest;
 
-        logic [DATA_WIDTH-1:0] rx_tdata[];
-        logic [KEEP_WIDTH-1:0] rx_tkeep[];
-        logic [KEEP_WIDTH-1:0] rx_tstrb[];
-        bit                    rx_tlast[];
-        logic [TID_WIDTH-1:0]  rx_tid[];
-        logic [TDEST_WIDTH-1:0] rx_tdest[];
+        logic [DATA_WIDTH-1:0]  rx_tdata[];
+        logic [KEEP_WIDTH-1:0]  rx_tkeep[];
+        logic [KEEP_WIDTH-1:0]  rx_tstrb[];
         logic [TUSER_WIDTH-1:0] rx_tuser[];
+        logic [TID_WIDTH-1:0]   rx_tid;
+        logic [TDEST_WIDTH-1:0] rx_tdest;
 
         burst_length = $urandom_range(16, 2);
+        tx_tid   = TID_WIDTH'(burst_idx);
+        tx_tdest = TDEST_WIDTH'(8'hA0 | (burst_idx & 'h0F));
 
-        tx_tdata  = new[burst_length];
-        tx_tkeep  = new[burst_length];
-        tx_tstrb  = new[burst_length];
-        tx_tlast  = new[burst_length];
-        tx_tid    = new[burst_length];
-        tx_tdest  = new[burst_length];
-        tx_tuser  = new[burst_length];
-        rx_tdata  = new[burst_length];
-        rx_tkeep  = new[burst_length];
-        rx_tstrb  = new[burst_length];
-        rx_tlast  = new[burst_length];
-        rx_tid    = new[burst_length];
-        rx_tdest  = new[burst_length];
-        rx_tuser  = new[burst_length];
+        tx_tdata = new[burst_length];
+        tx_tkeep = new[burst_length];
+        tx_tstrb = new[burst_length];
+        tx_tuser = new[burst_length];
+        rx_tdata = new[burst_length];
+        rx_tkeep = new[burst_length];
+        rx_tstrb = new[burst_length];
+        rx_tuser = new[burst_length];
 
         for (int beat_idx = 0; beat_idx < burst_length; beat_idx++) begin
           data_idx = burst_idx * 100 + beat_idx;
-          tx_tdata[beat_idx]  = build_tdata(data_idx);
-          tx_tkeep[beat_idx]  = build_byte_mask(data_idx);
-          tx_tstrb[beat_idx]  = build_byte_mask(data_idx + 1);
-          tx_tlast[beat_idx]  = (beat_idx == burst_length - 1);
-          tx_tid[beat_idx]    = TID_WIDTH'(burst_idx);
-          tx_tdest[beat_idx]  = TDEST_WIDTH'(8'hA0 | (burst_idx & 'h0F));
-          tx_tuser[beat_idx]  = TUSER_WIDTH'(32'hABCD_0000 | beat_idx);
+          tx_tdata[beat_idx] = build_tdata(data_idx);
+          tx_tkeep[beat_idx] = build_byte_mask(data_idx);
+          tx_tstrb[beat_idx] = build_byte_mask(data_idx + 1);
+          tx_tuser[beat_idx] = TUSER_WIDTH'(32'hABCD_0000 | beat_idx);
         end
 
         fork
-          master.send_multi(tx_tdata, tx_tkeep, tx_tstrb, tx_tlast, tx_tid, tx_tdest, tx_tuser);
-          slave.recv_multi(rx_tdata, rx_tkeep, rx_tstrb, rx_tlast, rx_tid, rx_tdest, rx_tuser);
+          master.send_multi(tx_tdata, tx_tkeep, tx_tstrb, tx_tuser, tx_tid, tx_tdest);
+          slave.recv_multi(rx_tdata, rx_tkeep, rx_tstrb, rx_tuser, rx_tid, rx_tdest);
         join
 
         assert(rx_tdata.size() == burst_length)
@@ -278,14 +269,12 @@ module axi4_stream_vip_tb;
           else $error("Burst %0d: RX keep size mismatch", burst_idx);
         assert(rx_tstrb.size() == burst_length)
           else $error("Burst %0d: RX strb size mismatch", burst_idx);
-        assert(rx_tlast.size() == burst_length)
-          else $error("Burst %0d: RX last size mismatch", burst_idx);
-        assert(rx_tid.size() == burst_length)
-          else $error("Burst %0d: RX tid size mismatch", burst_idx);
-        assert(rx_tdest.size() == burst_length)
-          else $error("Burst %0d: RX tdest size mismatch", burst_idx);
         assert(rx_tuser.size() == burst_length)
           else $error("Burst %0d: RX tuser size mismatch", burst_idx);
+        assert(rx_tid == tx_tid)
+          else $error("Burst %0d: TID mismatch exp=%0d got=%0d", burst_idx, tx_tid, rx_tid);
+        assert(rx_tdest == tx_tdest)
+          else $error("Burst %0d: TDEST mismatch exp=%0d got=%0d", burst_idx, tx_tdest, rx_tdest);
 
         for (int beat_idx = 0; beat_idx < burst_length; beat_idx++) begin
           assert(rx_tdata[beat_idx] == tx_tdata[beat_idx])
@@ -294,12 +283,6 @@ module axi4_stream_vip_tb;
             else $error("Burst %0d beat %0d: TKEEP mismatch", burst_idx, beat_idx);
           assert(rx_tstrb[beat_idx] == tx_tstrb[beat_idx])
             else $error("Burst %0d beat %0d: TSTRB mismatch", burst_idx, beat_idx);
-          assert(rx_tlast[beat_idx] == tx_tlast[beat_idx])
-            else $error("Burst %0d beat %0d: TLAST mismatch", burst_idx, beat_idx);
-          assert(rx_tid[beat_idx] == tx_tid[beat_idx])
-            else $error("Burst %0d beat %0d: TID mismatch", burst_idx, beat_idx);
-          assert(rx_tdest[beat_idx] == tx_tdest[beat_idx])
-            else $error("Burst %0d beat %0d: TDEST mismatch", burst_idx, beat_idx);
           assert(rx_tuser[beat_idx] == tx_tuser[beat_idx])
             else $error("Burst %0d beat %0d: TUSER mismatch", burst_idx, beat_idx);
         end

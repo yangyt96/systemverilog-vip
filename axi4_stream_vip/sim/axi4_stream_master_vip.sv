@@ -106,34 +106,62 @@ class Axi4StreamMasterVIP #(
              vip_name, tdata, tkeep, tstrb, tlast, tid, tdest, tuser);
     vif.tvalid <= 1'b0;
   endtask
+
   // High-level API: send multi-beat burst
+  // Simplified parameter list (7 arrays -> 1 required array + 3 optional arrays + 2 scalars):
+  //   - tdata[]  : required array, size() determines beat count
+  //   - tkeep[]  : optional array (pass {} for all 1's)
+  //   - tstrb[]  : optional array (pass {} for all 1's)
+  //   - tuser[]  : optional array (pass {} for all 0's)
+  //   - tid      : scalar, shared across all beats (default 0)
+  //   - tdest    : scalar, shared across all beats (default 0)
+  //   - tlast    : automatically asserted on the final beat (removed from parameter list)
   // Calls wait_reset_release() before starting, and apply_pause() between beats
   // when pause generator is enabled
-  task automatic send_multi(ref logic [DATA_WIDTH-1:0] tdata[], ref logic [KEEP_WIDTH-1:0] tkeep[],
-                            ref logic [KEEP_WIDTH-1:0] tstrb[], ref bit tlast[],
-                            ref logic [TID_WIDTH-1:0] tid[], ref logic [TDEST_WIDTH-1:0] tdest[],
-                            ref logic [TUSER_WIDTH-1:0] tuser[]);
+  task automatic send_multi(
+      input logic [DATA_WIDTH-1:0] tdata[], ref logic [KEEP_WIDTH-1:0] tkeep[],
+      ref logic [KEEP_WIDTH-1:0] tstrb[], ref logic [TUSER_WIDTH-1:0] tuser[],
+      input logic [TID_WIDTH-1:0] tid = '0, input logic [TDEST_WIDTH-1:0] tdest = '0);
     int unsigned beat_count;
     int unsigned beat_idx;
+    logic [KEEP_WIDTH-1:0] default_keep;
+    logic [KEEP_WIDTH-1:0] default_strb;
+    logic [TUSER_WIDTH-1:0] default_user;
 
     wait_reset_release();
     beat_count = tdata.size();
     assert (beat_count > 0)
     else $fatal(1, "%s send_multi called with no data beats", vip_name);
-    assert (tkeep.size() >= beat_count && tstrb.size() >= beat_count && tlast.size() >= beat_count &&
-            tid.size() >= beat_count && tdest.size() >= beat_count && tuser.size() >= beat_count)
+
+    default_keep = '1;
+    default_strb = '1;
+    default_user = '0;
+
+    // validate optional array sizes (if provided, must be >= beat_count)
+    assert (tkeep.size() == 0 || tkeep.size() >= beat_count)
     else
       $fatal(
-          1, "%s send_multi: all sideband arrays must be >= beat_count=%0d", vip_name, beat_count
+          1, "%s send_multi: tkeep.size()=%0d < beat_count=%0d", vip_name, tkeep.size(), beat_count
+      );
+    assert (tstrb.size() == 0 || tstrb.size() >= beat_count)
+    else
+      $fatal(
+          1, "%s send_multi: tstrb.size()=%0d < beat_count=%0d", vip_name, tstrb.size(), beat_count
+      );
+    assert (tuser.size() == 0 || tuser.size() >= beat_count)
+    else
+      $fatal(
+          1, "%s send_multi: tuser.size()=%0d < beat_count=%0d", vip_name, tuser.size(), beat_count
       );
 
     for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
-      // apply pause between beats (not before first beat, to match AXI4-Full pattern)
       if (enable_pause_generator && beat_idx > 0) begin
         apply_pause();
       end
-      send_single(tdata[beat_idx], tkeep[beat_idx], tstrb[beat_idx], tlast[beat_idx], tid[beat_idx],
-                  tdest[beat_idx], tuser[beat_idx]);
+      send_single(tdata[beat_idx], (tkeep.size() > 0) ? tkeep[beat_idx] : default_keep,
+                  (tstrb.size() > 0) ? tstrb[beat_idx] : default_strb,
+                  (beat_idx == beat_count - 1),  // tlast: auto-assert on final beat
+                  tid, tdest, (tuser.size() > 0) ? tuser[beat_idx] : default_user);
     end
   endtask
 

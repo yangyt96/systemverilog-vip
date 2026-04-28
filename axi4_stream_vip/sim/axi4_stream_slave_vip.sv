@@ -102,37 +102,64 @@ class Axi4StreamSlaveVIP #(
   endtask
 
   // High-level API: receive multi-beat burst until tlast is seen
+  // Simplified parameter list (7 arrays -> 1 required array + 3 optional arrays + 2 scalars):
+  //   - tdata[]  : required pre-allocated array, size() determines max beats
+  //   - tkeep[]  : optional output array (pass {} to skip)
+  //   - tstrb[]  : optional output array (pass {} to skip)
+  //   - tuser[]  : optional output array (pass {} to skip)
+  //   - tid      : scalar output, captures TID from first beat
+  //   - tdest    : scalar output, captures TDEST from first beat
+  //   - tlast    : removed, internally detected to terminate reception
   // Calls wait_reset_release() before starting, and apply_stall() between beats
   // when backpressure is enabled
   task automatic recv_multi(ref logic [DATA_WIDTH-1:0] tdata[], ref logic [KEEP_WIDTH-1:0] tkeep[],
-                            ref logic [KEEP_WIDTH-1:0] tstrb[], ref bit tlast[],
-                            ref logic [TID_WIDTH-1:0] tid[], ref logic [TDEST_WIDTH-1:0] tdest[],
-                            ref logic [TUSER_WIDTH-1:0] tuser[]);
+                            ref logic [KEEP_WIDTH-1:0] tstrb[], ref logic [TUSER_WIDTH-1:0] tuser[],
+                            output logic [TID_WIDTH-1:0] tid, output logic [TDEST_WIDTH-1:0] tdest);
     int unsigned beat_idx;
     int unsigned max_beats;
+    bit beat_last;
+    logic [KEEP_WIDTH-1:0] captured_keep;
+    logic [KEEP_WIDTH-1:0] captured_strb;
+    logic [TUSER_WIDTH-1:0] captured_user;
 
     wait_reset_release();
     max_beats = tdata.size();
     assert (max_beats > 0)
     else $fatal(1, "%s recv_multi called with no data beats", vip_name);
-    assert (tkeep.size() >= max_beats && tstrb.size() >= max_beats && tlast.size() >= max_beats &&
-            tid.size() >= max_beats && tdest.size() >= max_beats && tuser.size() >= max_beats)
-    else
-      $fatal(1, "%s recv_multi: all sideband arrays must be >= max_beats=%0d", vip_name, max_beats);
 
-    beat_idx = 0;
+    // validate optional array sizes (if provided, must be >= max_beats)
+    assert (tkeep.size() == 0 || tkeep.size() >= max_beats)
+    else
+      $fatal(
+          1, "%s recv_multi: tkeep.size()=%0d < max_beats=%0d", vip_name, tkeep.size(), max_beats
+      );
+    assert (tstrb.size() == 0 || tstrb.size() >= max_beats)
+    else
+      $fatal(
+          1, "%s recv_multi: tstrb.size()=%0d < max_beats=%0d", vip_name, tstrb.size(), max_beats
+      );
+    assert (tuser.size() == 0 || tuser.size() >= max_beats)
+    else
+      $fatal(
+          1, "%s recv_multi: tuser.size()=%0d < max_beats=%0d", vip_name, tuser.size(), max_beats
+      );
+
+    beat_idx  = 0;
+    beat_last = 1'b0;
     do begin
-      // apply stall between beats (not before first beat)
       if (enable_backpressure && beat_idx > 0) begin
         apply_stall();
       end
-      recv_single(tdata[beat_idx], tkeep[beat_idx], tstrb[beat_idx], tlast[beat_idx], tid[beat_idx],
-                  tdest[beat_idx], tuser[beat_idx]);
+      recv_single(tdata[beat_idx], captured_keep, captured_strb, beat_last, tid, tdest,
+                  captured_user);
+      if (tkeep.size() > 0) tkeep[beat_idx] = captured_keep;
+      if (tstrb.size() > 0) tstrb[beat_idx] = captured_strb;
+      if (tuser.size() > 0) tuser[beat_idx] = captured_user;
       beat_idx++;
       if (beat_idx > max_beats) begin
         $fatal(1, "%s recv_multi exceeded max_beats=%0d without seeing tlast", vip_name, max_beats);
       end
-    end while (!tlast[beat_idx-1]);
+    end while (!beat_last);
   endtask
 
   // Internal: apply random stall cycles (used only in high-level tasks)
