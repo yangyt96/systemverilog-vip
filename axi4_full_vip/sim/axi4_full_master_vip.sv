@@ -151,8 +151,6 @@ class Axi4FullMasterVIP #(
     assert (beat_count > 0)
     else $fatal(1, "%s send_awchn called with beat_count=0", vip_name);
 
-    apply_pause();
-
     cycles = 0;
     do begin
       vif.awid     <= id;
@@ -210,8 +208,6 @@ class Axi4FullMasterVIP #(
   task recv_bchn(output logic [1:0] resp);
     int unsigned cycles;
 
-    apply_pause();
-
     cycles = 0;
     do begin
       vif.bready <= 1'b1;
@@ -238,8 +234,6 @@ class Axi4FullMasterVIP #(
 
     assert (beat_count > 0)
     else $fatal(1, "%s send_archn called with beat_count=0", vip_name);
-
-    apply_pause();
 
     vif.arid     <= id;
     vif.araddr   <= addr;
@@ -312,7 +306,9 @@ class Axi4FullMasterVIP #(
     logic [ID_WIDTH-1:0] act_id;
     logic act_last;
     begin
+      apply_pause();
       send_archn(addr, 1, id);
+      apply_pause();
       recv_rchn(data, resp, act_id, act_last);
     end
   endtask
@@ -332,10 +328,13 @@ class Axi4FullMasterVIP #(
     else $fatal(1, "%s write_burst strb array too short", vip_name);
 
     // Call the three channel APIs in sequence
+    apply_pause();
     send_awchn(addr, beat_count, id, size, burst, prot);
     for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
+      apply_pause();
       send_wchn(data[beat_idx], strb[beat_idx], beat_idx == (beat_count - 1));
     end
+    apply_pause();
     recv_bchn(resp);
   endtask
 
@@ -355,17 +354,17 @@ class Axi4FullMasterVIP #(
     else $fatal(1, "%s recv_rchn resp array too short", vip_name);
 
     // Call the two channel APIs in sequence
+      apply_pause();
     send_archn(addr, beat_count, id, size, burst, prot);
     for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
+      apply_pause();
       recv_rchn(data[beat_idx], resp[beat_idx], act_id, act_last);
 
       assert (act_id == id)
       else $error("%s read ID mismatch exp=%0d got=%0d", vip_name, id, vif.rid);
-
       assert (act_last == (beat_idx == (beat_count - 1)))
       else $error("%s rlast mismatch beat=%0d beats=%0d", vip_name, beat_idx, beat_count);
     end
-
 
   endtask
 
