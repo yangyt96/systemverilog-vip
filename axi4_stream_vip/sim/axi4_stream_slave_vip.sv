@@ -69,14 +69,13 @@ class Axi4StreamSlaveVIP #(
 
   // Channel-level API: receive single beat
   // Drives tready, waits for tvalid handshake, captures all signals
-  // Does NOT call apply_stall() - that is reserved for high-level tasks
+  // Does NOT call wait_reset_release() or apply_stall() - those are reserved for high-level tasks
+  // (following AXI4-Full/Lite channel API pattern)
   task automatic recv_single(
       output logic [DATA_WIDTH-1:0] tdata, output logic [KEEP_WIDTH-1:0] tkeep,
       output logic [KEEP_WIDTH-1:0] tstrb, output bit tlast, output logic [TID_WIDTH-1:0] tid,
       output logic [TDEST_WIDTH-1:0] tdest, output logic [TUSER_WIDTH-1:0] tuser);
     int unsigned cycles;
-
-    wait_reset_release();
 
     cycles = 0;
     do begin
@@ -103,7 +102,8 @@ class Axi4StreamSlaveVIP #(
   endtask
 
   // High-level API: receive multi-beat burst until tlast is seen
-  // Calls apply_stall() between beats when backpressure is enabled
+  // Calls wait_reset_release() before starting, and apply_stall() between beats
+  // when backpressure is enabled
   task automatic recv_multi(ref logic [DATA_WIDTH-1:0] tdata[], ref logic [KEEP_WIDTH-1:0] tkeep[],
                             ref logic [KEEP_WIDTH-1:0] tstrb[], ref bit tlast[],
                             ref logic [TID_WIDTH-1:0] tid[], ref logic [TDEST_WIDTH-1:0] tdest[],
@@ -111,12 +111,14 @@ class Axi4StreamSlaveVIP #(
     int unsigned beat_idx;
     int unsigned max_beats;
 
+    wait_reset_release();
     max_beats = tdata.size();
     assert (max_beats > 0)
     else $fatal(1, "%s recv_multi called with no data beats", vip_name);
     assert (tkeep.size() >= max_beats && tstrb.size() >= max_beats && tlast.size() >= max_beats &&
             tid.size() >= max_beats && tdest.size() >= max_beats && tuser.size() >= max_beats)
-    else $fatal(1, "%s recv_multi: all sideband arrays must be >= max_beats=%0d", vip_name, max_beats);
+    else
+      $fatal(1, "%s recv_multi: all sideband arrays must be >= max_beats=%0d", vip_name, max_beats);
 
     beat_idx = 0;
     do begin

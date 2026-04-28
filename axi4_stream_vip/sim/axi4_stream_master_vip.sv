@@ -77,14 +77,13 @@ class Axi4StreamMasterVIP #(
 
   // Channel-level API: send single beat
   // Drives tvalid + tdata + sidebands, waits for tready handshake
-  // Does NOT call apply_pause() - that is reserved for high-level tasks
+  // Does NOT call wait_reset_release() or apply_pause() - those are reserved for high-level tasks
+  // (following AXI4-Full/Lite channel API pattern)
   task automatic send_single(logic [DATA_WIDTH-1:0] tdata, logic [KEEP_WIDTH-1:0] tkeep = '1,
                              logic [KEEP_WIDTH-1:0] tstrb = '1, bit tlast = '1,
                              logic [TID_WIDTH-1:0] tid = '0, logic [TDEST_WIDTH-1:0] tdest = '0,
                              logic [TUSER_WIDTH-1:0] tuser = 0);
     int unsigned cycles;
-
-    wait_reset_release();
 
     cycles = 0;
     do begin
@@ -108,7 +107,8 @@ class Axi4StreamMasterVIP #(
     vif.tvalid <= 1'b0;
   endtask
   // High-level API: send multi-beat burst
-  // Calls apply_pause() between beats when pause generator is enabled
+  // Calls wait_reset_release() before starting, and apply_pause() between beats
+  // when pause generator is enabled
   task automatic send_multi(ref logic [DATA_WIDTH-1:0] tdata[], ref logic [KEEP_WIDTH-1:0] tkeep[],
                             ref logic [KEEP_WIDTH-1:0] tstrb[], ref bit tlast[],
                             ref logic [TID_WIDTH-1:0] tid[], ref logic [TDEST_WIDTH-1:0] tdest[],
@@ -116,12 +116,16 @@ class Axi4StreamMasterVIP #(
     int unsigned beat_count;
     int unsigned beat_idx;
 
+    wait_reset_release();
     beat_count = tdata.size();
     assert (beat_count > 0)
     else $fatal(1, "%s send_multi called with no data beats", vip_name);
     assert (tkeep.size() >= beat_count && tstrb.size() >= beat_count && tlast.size() >= beat_count &&
             tid.size() >= beat_count && tdest.size() >= beat_count && tuser.size() >= beat_count)
-    else $fatal(1, "%s send_multi: all sideband arrays must be >= beat_count=%0d", vip_name, beat_count);
+    else
+      $fatal(
+          1, "%s send_multi: all sideband arrays must be >= beat_count=%0d", vip_name, beat_count
+      );
 
     for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
       // apply pause between beats (not before first beat, to match AXI4-Full pattern)
