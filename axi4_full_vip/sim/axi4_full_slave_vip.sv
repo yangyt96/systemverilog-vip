@@ -153,6 +153,7 @@ class Axi4FullSlaveVIP #(
   // ============ Write Channel Tasks ============
 
   // Wait for and accept a write address (AW) transfer
+  // Note: wait_reset_release() is called in high-level tasks, not here
   task automatic recv_awchn(
       output logic [ADDR_WIDTH-1:0] addr, output logic [ID_WIDTH-1:0] id,
       output logic [LEN_WIDTH-1:0] len, output logic [SIZE_WIDTH-1:0] size,
@@ -161,8 +162,6 @@ class Axi4FullSlaveVIP #(
       output logic [QOS_WIDTH-1:0] qos, output logic [REGION_WIDTH-1:0] region,
       output logic [AWUSER_WIDTH-1:0] user);
     int unsigned cycles;
-
-    wait_reset_release();
 
     vif.awready <= 1'b1;
 
@@ -197,6 +196,7 @@ class Axi4FullSlaveVIP #(
     vif.awready <= 1'b0;
   endtask
 
+  // Note: wait_reset_release() is called in high-level tasks, not here
   task automatic recv_wchn(output logic [DATA_WIDTH-1:0] data, output logic [STRB_WIDTH-1:0] strb,
                            output logic last, output logic [WUSER_WIDTH-1:0] user);
     int unsigned cycles;
@@ -223,6 +223,7 @@ class Axi4FullSlaveVIP #(
   endtask
 
   // Send write response (B)
+  // Note: wait_reset_release() is called in high-level tasks, not here
   task automatic send_bchn(input logic [ID_WIDTH-1:0] id, input logic [1:0] resp = 2'b00,
                            input logic [BUSER_WIDTH-1:0] user = '0);
     int unsigned cycles;
@@ -270,6 +271,7 @@ class Axi4FullSlaveVIP #(
     logic [STRB_WIDTH-1:0] beat_strb;
     bit beat_last;
 
+    wait_reset_release();
     apply_stall();
     recv_awchn(addr, id, len, size, burst, prot, cache, lock, qos, region, aw_user);
     beat_count = int'(len) + 1;
@@ -318,6 +320,7 @@ class Axi4FullSlaveVIP #(
     bit beat_last;
     logic [WUSER_WIDTH-1:0] w_user;
 
+    wait_reset_release();
     apply_stall();
     recv_awchn(addr, id, len, size, burst, prot, cache, lock, qos, region, aw_user);
     apply_stall();
@@ -334,6 +337,7 @@ class Axi4FullSlaveVIP #(
   // ============ Read Channel Tasks ============
 
   // Wait for and accept a read address (AR) transfer
+  // Note: wait_reset_release() is called in high-level tasks, not here
   task automatic recv_archn(
       output logic [ADDR_WIDTH-1:0] addr, output logic [ID_WIDTH-1:0] id,
       output logic [LEN_WIDTH-1:0] len, output logic [SIZE_WIDTH-1:0] size,
@@ -342,8 +346,6 @@ class Axi4FullSlaveVIP #(
       output logic [QOS_WIDTH-1:0] qos, output logic [REGION_WIDTH-1:0] region,
       output logic [ARUSER_WIDTH-1:0] user);
     int unsigned cycles;
-
-    wait_reset_release();
 
     vif.arready <= 1'b1;
 
@@ -379,6 +381,7 @@ class Axi4FullSlaveVIP #(
   endtask
 
   // Send read data (single beat) — symmetric with Master's recv_rchn (scalar)
+  // Note: wait_reset_release() is called in high-level tasks, not here
   task automatic send_rchn(input logic [DATA_WIDTH-1:0] data, input logic [ID_WIDTH-1:0] id,
                            input logic [1:0] resp = 2'b00, input logic last = 1'b1,
                            input logic [RUSER_WIDTH-1:0] user = '0);
@@ -424,6 +427,7 @@ class Axi4FullSlaveVIP #(
     logic [ARUSER_WIDTH-1:0] ar_user;
     int unsigned beat_count;
 
+    wait_reset_release();
     apply_stall();
     recv_archn(addr, id, len, size, burst, prot, cache, lock, qos, region, ar_user);
     beat_count = int'(len) + 1;
@@ -464,6 +468,7 @@ class Axi4FullSlaveVIP #(
     logic [ARUSER_WIDTH-1:0] ar_user;
     int unsigned beat_count;
 
+    wait_reset_release();
     apply_stall();
     recv_archn(addr, id, len, size, burst, prot, cache, lock, qos, region, ar_user);
     beat_count = int'(len) + 1;
@@ -510,6 +515,7 @@ class Axi4FullSlaveVIP #(
     bit                            beat_last;
     logic        [WUSER_WIDTH-1:0] wuser;
 
+    wait_reset_release();
     recv_awchn(addr, id, len, size, burst, prot, cache, lock, qos, region, awuser);
     beat_count = int'(len) + 1;
 

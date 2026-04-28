@@ -271,7 +271,7 @@ class Axi4FullMasterVIP #(
                  ref logic last, ref logic [RUSER_WIDTH-1:0] user);
     int unsigned cycles;
 
-    vif.rready <= 1;
+    vif.rready <= 1'b1;
     cycles = 0;
     do begin
       @(posedge vif.aclk);
