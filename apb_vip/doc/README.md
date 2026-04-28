@@ -44,11 +44,25 @@ master_vip.write(addr, data, strb, slverr, prot);
 master_vip.read(addr, data, slverr, prot);
 ```
 
+**Configuration:**
+
+```systemverilog
+master_vip.configure_pause_generator(enable, min_cycles, max_cycles);
+master_vip.configure_timeout(cycles);
+```
+
 ### Slave VIP (class-based, software slave)
 
 ```systemverilog
 slave_vip.expect_write(addr, data, strb, prot, slverr);
 slave_vip.respond_read(read_data, addr, prot, slverr);
+```
+
+**Configuration:**
+
+```systemverilog
+slave_vip.configure_backpressure(enable, min_cycles, max_cycles);
+slave_vip.configure_timeout(cycles);
 ```
 
 ### Memory VIP (hardware module, synthesizable)
@@ -91,6 +105,9 @@ Two separate testbenches are provided to avoid driver conflicts:
 | **Basic Write-Read** | 48 write-read pairs with zero ready delay |
 | **Ready Delay Write-Read** | 8 write-read pairs with 3-cycle ready delay |
 | **Error Response** | Write and read with `PSLVERR` error injection |
+| **Backpressure Fixed Stall** | 8 write-read pairs with fixed 5-cycle PREADY stall |
+| **Backpressure Random Stall** | 8 write-read pairs with random 1-10 cycle PREADY stall |
+| **Backpressure Edge Cases** | Backpressure with min=0, max=0 (immediate ready) and max < min (clamped) |
 
 ### [`apb_mem_vip_tb.sv`](tb/apb_mem_vip_tb.sv) — Mem VIP tests (hardware module)
 

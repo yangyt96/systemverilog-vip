@@ -13,10 +13,11 @@ The VIP currently includes:
 - A transmitter VIP with `transmit`
 - A receiver VIP with `receive`
 - 8N1 frame support, LSB first
+- Configurable baud rate via `CLKS_PER_BIT` parameter
+- Configurable parity (none/odd/even) via `PARITY_MODE` parameter
 - Transaction timeout protection
 - Transaction logging to the simulator CLI
-- A VUnit testbench with exact frame checks, a constant 10 us inter-frame gap,
-  and continuous frame coverage
+- A VUnit testbench with single frame, continuous frame, and parity coverage
 
 ## Folder Structure
 
@@ -50,20 +51,47 @@ The UART line is idle high.
 
 The transmitter VIP is a class-based UART source.
 
-Main API:
+**Parameters:**
+
+| Parameter | Description | Valid Range |
+|-----------|-------------|-------------|
+| `CLKS_PER_BIT` | Clock cycles per UART bit period | >= 4 |
+| `PARITY_MODE` | Parity configuration | 0=none, 1=odd, 2=even |
+
+**Main API:**
 
 ```systemverilog
 tx_vip.transmit(data);
+```
+
+**Configuration:**
+
+```systemverilog
+tx_vip.configure_pause_generator(enable, min_cycles, max_cycles);
+tx_vip.configure_timeout(cycles);
 ```
 
 ### `UartRxVIP`
 
 The receiver VIP is a class-based UART sink.
 
-Main API:
+**Parameters:**
+
+| Parameter | Description | Valid Range |
+|-----------|-------------|-------------|
+| `CLKS_PER_BIT` | Clock cycles per UART bit period | >= 4 |
+| `PARITY_MODE` | Parity configuration | 0=none, 1=odd, 2=even |
+
+**Main API:**
 
 ```systemverilog
 rx_vip.receive(data, framing_error);
+```
+
+**Configuration:**
+
+```systemverilog
+rx_vip.configure_timeout(cycles);
 ```
 
 The receiver waits for a start bit, samples each data bit in the middle of the
@@ -72,6 +100,15 @@ bit period, and reports a framing error if the start or stop bit is invalid.
 Basic UART has no ready/valid handshake, so this receiver does not provide
 backpressure. Hardware flow control such as RTS/CTS can be modeled as an
 optional extension if needed.
+
+## Testbench Summary
+
+| Test Case | Description |
+|-----------|-------------|
+| **SingleFrames** | 8 single frames with inter-frame gap |
+| **ContinuousFrames** | 16 back-to-back frames without gap |
+| **OddParity** | 8 frames with odd parity |
+| **EvenParity** | 8 frames with even parity |
 
 ## Running the Simulation
 

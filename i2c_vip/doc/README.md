@@ -15,9 +15,11 @@ The VIP currently includes:
 - 7-bit addressing
 - ACK/NACK checking
 - Wrong-address NACK checking
+- Bus contention detection (SVA assertions on SDA conflicts)
+- Clock stretching support
 - Transaction timeout protection
 - Transaction logging to the simulator CLI
-- A VUnit testbench with write, read, and continuous read coverage
+- A VUnit testbench with write, read, continuous read, clock stretching, and bus contention coverage
 
 ## Folder Structure
 
@@ -42,19 +44,32 @@ i2c_vip/
 
 Defines the shared open-drain I2C bus:
 
-- `scl` and `sda` are `tri1`, so they pull high when nobody drives low
+- `scl` and `sda` are resolved with pull-up behavior
 - The master and slave each expose low-drive control signals
+- Includes SVA assertions for bus contention detection
 
 ### `I2CMasterVIP`
 
 The master VIP generates start and stop conditions, serializes the 7-bit
 address plus R/W bit, and checks ACK/NACK.
 
-Main APIs:
+**Parameters:**
+
+| Parameter | Description | Valid Range |
+|-----------|-------------|-------------|
+| `HALF_SCL_CYCLES` | Clock cycles for half SCL period | > 0 |
+
+**Main APIs:**
 
 ```systemverilog
 master_vip.write_byte(address, data, address_ack, data_ack);
 master_vip.read_byte(address, data, address_ack);
+```
+
+**Configuration:**
+
+```systemverilog
+master_vip.configure_timeout(cycles);
 ```
 
 ### `I2CSlaveVIP`
@@ -62,12 +77,30 @@ master_vip.read_byte(address, data, address_ack);
 The slave VIP waits for a start condition and responds when the address and R/W
 bit match its configured address.
 
-Main APIs:
+**Main APIs:**
 
 ```systemverilog
 slave_vip.expect_write(data, address_match);
 slave_vip.respond_read(data, address_match, master_ack);
 ```
+
+**Configuration:**
+
+```systemverilog
+slave_vip.configure_timeout(cycles);
+```
+
+## Testbench Summary
+
+| Test Case | Description |
+|-----------|-------------|
+| **WriteRead** | Write 8 bytes then read 8 bytes |
+| **WrongAddressNack** | Write to wrong address, expect NACK |
+| **ContinuousRead** | Read 16 bytes continuously |
+| **ClockStretchWrite** | Slave stretches SCL during write |
+| **ClockStretchRead** | Slave stretches SCL during read |
+| **ClockStretchMultiByte** | Slave stretches SCL across multi-byte transfer |
+| **ClockStretchEdgeCases** | Stretch at start, mid-byte, and stop conditions |
 
 ## Running the Simulation
 

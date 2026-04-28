@@ -13,6 +13,7 @@ The VIP currently includes:
 - A receiver VIP with `receive`
 - Stereo frame support with `WS=0` for left and `WS=1` for right
 - MSB-first sample transfer with one I2S lead bit before each channel MSB
+- Configurable sample width via `SAMPLE_WIDTH` parameter
 - Transaction timeout protection
 - A self-checking VUnit testbench and ModelSim waveform setup
 
@@ -33,12 +34,57 @@ i2s_vip/
 │   └── run.py
 ```
 
-## Main APIs
+## Main Components
+
+### `I2STxVIP`
+
+**Parameters:**
+
+| Parameter | Description | Valid Range |
+|-----------|-------------|-------------|
+| `SAMPLE_WIDTH` | Audio sample width in bits | > 0 |
+
+**Main API:**
 
 ```systemverilog
 tx_vip.transmit(left_sample, right_sample);
+```
+
+**Configuration:**
+
+```systemverilog
+tx_vip.configure_pause_generator(enable, min_cycles, max_cycles);
+tx_vip.configure_timeout(cycles);
+```
+
+### `I2SRxVIP`
+
+**Parameters:**
+
+| Parameter | Description | Valid Range |
+|-----------|-------------|-------------|
+| `SAMPLE_WIDTH` | Audio sample width in bits | > 0 |
+
+**Main API:**
+
+```systemverilog
 rx_vip.receive(left_sample, right_sample, frame_error);
 ```
+
+**Configuration:**
+
+```systemverilog
+rx_vip.configure_timeout(cycles);
+```
+
+## Testbench Summary
+
+| Test Case | Description |
+|-----------|-------------|
+| **BasicTransmitReceive** | Transmit 4 stereo frames, verify reception |
+| **PauseBetweenFrames** | Transmit with pause generator, verify receiver matches |
+| **DifferentSampleValues** | Test various sample values (min, max, alternating) |
+| **MultipleFrames** | 16 continuous frames without gap |
 
 ## Running the Simulation
 

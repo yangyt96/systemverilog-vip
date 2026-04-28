@@ -12,12 +12,11 @@ The VIP currently includes:
 - A four-wire SPI interface: `sclk`, `cs_n`, `mosi`, and `miso`
 - A master VIP with `transfer`
 - A slave VIP with `transfer`
-- SPI mode 0 behavior by default: `CPOL=0`, `CPHA=0`
+- Configurable CPOL and CPHA for all SPI modes (0-3)
 - MSB-first full-duplex transfers
 - Transaction timeout protection
 - Transaction logging to the simulator CLI
-- A VUnit testbench with exact transfer checks, a constant 10 us inter-transfer
-  gap, and continuous transfer coverage
+- A VUnit testbench with single, continuous, and CS abort coverage
 
 ## Folder Structure
 
@@ -49,10 +48,25 @@ Defines the shared SPI signals and modports:
 
 The master VIP controls chip select and serial clock.
 
-Main API:
+**Parameters:**
+
+| Parameter | Description | Valid Range |
+|-----------|-------------|-------------|
+| `DATA_BITS` | Number of data bits per transfer | > 0 |
+| `CPOL` | Clock polarity (0=idle low, 1=idle high) | 0 or 1 |
+| `CPHA` | Clock phase (0=leading edge, 1=trailing edge) | 0 or 1 |
+
+**Main API:**
 
 ```systemverilog
 master_vip.transfer(tx_data, rx_data);
+```
+
+**Configuration:**
+
+```systemverilog
+master_vip.configure_pause_generator(enable, min_cycles, max_cycles);
+master_vip.configure_timeout(cycles);
 ```
 
 ### `SpiSlaveVIP`
@@ -60,11 +74,35 @@ master_vip.transfer(tx_data, rx_data);
 The slave VIP waits for `cs_n` assertion, samples `mosi`, and shifts response
 data on `miso`.
 
-Main API:
+**Parameters:**
+
+| Parameter | Description | Valid Range |
+|-----------|-------------|-------------|
+| `DATA_BITS` | Number of data bits per transfer | > 0 |
+| `CPOL` | Clock polarity | 0 or 1 |
+| `CPHA` | Clock phase | 0 or 1 |
+
+**Main API:**
 
 ```systemverilog
 slave_vip.transfer(tx_data, rx_data);
 ```
+
+**Configuration:**
+
+```systemverilog
+slave_vip.configure_timeout(cycles);
+```
+
+## Testbench Summary
+
+Tests run for all 4 SPI mode combinations (CPOL=0/1 × CPHA=0/1):
+
+| Test Case | Description |
+|-----------|-------------|
+| **SingleTransfers** | 8 single transfers with inter-transfer gap |
+| **ContinuousTransfers** | 16 back-to-back transfers without gap |
+| **CSAbortMidTransfer** | CS de-asserted mid-transfer, verify slave detects abort |
 
 ## Running the Simulation
 
