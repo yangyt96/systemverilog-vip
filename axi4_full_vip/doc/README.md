@@ -35,8 +35,8 @@ axi4_full_vip/
 │   ├── axi4_full_slave_vip.sv        # Class-based slave VIP with backpressure
 │   └── axi4_full_vip_pkg.sv
 ├── tb/
-│   ├── axi4_full_vip_tb.do
-│   ├── axi4_full_vip_tb.sv           # Master + mem VIP testbench
+│   ├── axi4_full_mem_vip_tb.do
+│   ├── axi4_full_mem_vip_tb.sv           # Master + mem VIP testbench
 │   ├── axi4_full_slave_vip_tb.do
 │   ├── axi4_full_slave_vip_tb.sv     # Slave VIP testbench
 │   └── run.py
@@ -90,16 +90,47 @@ master.configure_timeout(cycles);
 ### `Axi4FullSlaveVIP`
 
 The class-based slave VIP provides configurable backpressure on all channels.
+Its API is symmetric with `Axi4FullMasterVIP`:
+
+| Master | Slave |
+|--------|-------|
+| `send_awchn()` | `recv_awchn()` |
+| `send_wchn()` | `recv_wchn()` |
+| `recv_bchn()` | `send_bchn()` |
+| `send_archn()` | `recv_archn()` |
+| `recv_rchn()` | `send_rchn()` |
+| `write_burst()` | `expect_write_burst()` |
+| `read_burst()` | `respond_read_burst()` |
+| `write()` | `expect_write_single()` |
+| `read()` | `respond_read_single()` |
+
+#### Channel-level APIs
 
 ```systemverilog
 // Write channel
-slave.recv_awchn(addr, beat_count, id, size, burst, prot);
-slave.recv_wchn(data_array, strb_array);
-slave.send_bchn(resp);
+slave.recv_awchn(addr, id, len, size, burst, prot);
+slave.recv_wchn(data, strb, last);
+slave.send_bchn(id, resp);
 
 // Read channel
-slave.recv_archn(addr, beat_count, id, size, burst, prot);
-slave.send_rchn(data_array, resp_array, id);
+slave.recv_archn(addr, id, len, size, burst, prot);
+slave.send_rchn(data[], id, resp);
+```
+
+#### High-level APIs
+
+```systemverilog
+// Expect a complete write burst (AW + all W beats) and send B response
+slave.expect_write_burst(data[], strb[], resp);
+
+// Expect a single-beat write and send B response
+slave.expect_write_single(data, strb, resp);
+
+// Respond to a read burst (AR + all R beats)
+slave.respond_read_burst(data[], resp);
+
+// Respond to a single-beat read
+slave.respond_read_single(data, resp);
 ```
 
 **Configuration:**
@@ -107,6 +138,7 @@ slave.send_rchn(data_array, resp_array, id);
 ```systemverilog
 slave.configure_backpressure(enable, min_cycles, max_cycles);
 slave.configure_timeout(cycles);
+slave.clear_outputs();
 ```
 
 ### `axi4_full_mem_vip.sv`
@@ -117,7 +149,7 @@ byte-addressed array, returns `OKAY` responses, preserves response IDs, handles
 
 ## Testbench Summary
 
-### `axi4_full_vip_tb.sv` — Master + Mem VIP tests
+### `axi4_full_mem_vip_tb.sv` — Master + Mem VIP tests
 
 | Test Case | Description |
 |-----------|-------------|

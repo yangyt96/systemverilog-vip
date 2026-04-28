@@ -13,7 +13,7 @@ vu.add_verilog_builtins()
 lib = vu.add_library("lib")
 lib.add_source_files(
     [
-        ROOT / "tb/axi4_full_vip_tb.sv",
+        ROOT / "tb/axi4_full_mem_vip_tb.sv",
         ROOT / "tb/axi4_full_slave_vip_tb.sv",
     ],
     include_dirs=[
@@ -22,12 +22,12 @@ lib.add_source_files(
     ],
 )
 
-tb_vip = lib.test_bench("axi4_full_vip_tb")
+tb_vip = lib.test_bench("axi4_full_mem_vip_tb")
 tb_slave = lib.test_bench("axi4_full_slave_vip_tb")
 
 tb_vip.set_sim_option(
     name="modelsim.init_file.gui",
-    value=str(ROOT / "tb/axi4_full_vip_tb.do"),
+    value=str(ROOT / "tb/axi4_full_mem_vip_tb.do"),
 )
 tb_slave.set_sim_option(
     name="modelsim.init_file.gui",
