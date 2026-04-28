@@ -141,19 +141,14 @@ class Axi4FullMasterVIP #(
     vif.rready   <= 1'b0;
   endtask
 
-  // Write transaction: address, data, and response
-  task write(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
-             input logic [STRB_WIDTH-1:0] strb = '1, input logic [ID_WIDTH-1:0] id = '0,
-             input logic [LEN_WIDTH-1:0] len = '0,  // Single beat
-             input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
-             input logic [BURST_WIDTH-1:0] burst = 2'b01,  // INCR
-             input logic [PROT_WIDTH-1:0] prot = 3'b000, output logic [1:0] resp);
-    logic [DATA_WIDTH-1:0] burst_data[1];
-    logic [STRB_WIDTH-1:0] burst_strb[1];
+  // Single-beat write transaction
+  task write_single(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
+                    input logic [STRB_WIDTH-1:0] strb = '1, input logic [ID_WIDTH-1:0] id = '0,
+                    output logic [1:0] resp);
     begin
-      burst_data[0] = data;
-      burst_strb[0] = strb;
-      write_burst(addr, burst_data, burst_strb, id, size, burst, prot, resp);
+      send_awchn(addr, 1, id);
+      send_wchn(data, strb, 1'b1);
+      recv_bchn(resp);
     end
   endtask
 
@@ -267,21 +262,14 @@ class Axi4FullMasterVIP #(
     recv_bchn(resp);
   endtask
 
-  // Read transaction
-  task read(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
-            output logic [1:0] resp, input logic [ID_WIDTH-1:0] id = '0,
-            input logic [LEN_WIDTH-1:0] len = '0,  // Single beat
-            input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
-            input logic [BURST_WIDTH-1:0] burst = 2'b01,  // INCR
-            input logic [PROT_WIDTH-1:0] prot = 3'b000);
-    logic [DATA_WIDTH-1:0] burst_data[];
-    logic [1:0] burst_resp[];
+  // Single-beat read transaction
+  task read_single(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
+                   output logic [1:0] resp, input logic [ID_WIDTH-1:0] id = '0);
+    logic [ID_WIDTH-1:0] act_id;
+    logic act_last;
     begin
-      burst_data = new[1];
-      burst_resp = new[1];
-      read_burst(addr, 1, burst_data, burst_resp, id, size, burst, prot);
-      data = burst_data[0];
-      resp = burst_resp[0];
+      send_archn(addr, 1, id);
+      recv_rchn(data, resp, act_id, act_last);
     end
   endtask
 

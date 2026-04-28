@@ -56,8 +56,8 @@ The master VIP drives AXI4-Full traffic through a virtual interface.
 **Single-beat APIs:**
 
 ```systemverilog
-master.write(addr, data, strb, id, len, size, burst, prot, resp);
-master.read(addr, data, resp, id, len, size, burst, prot);
+master.write_single(addr, data, strb, id, resp);
+master.read_single(addr, data, resp, id);
 ```
 
 **Burst APIs:**
@@ -101,8 +101,8 @@ Its API is symmetric with `Axi4FullMasterVIP`:
 | `recv_rchn()` | `send_rchn()` |
 | `write_burst()` | `expect_write_burst()` |
 | `read_burst()` | `respond_read_burst()` |
-| `write()` | `expect_write_single()` |
-| `read()` | `respond_read_single()` |
+| `write_single()` | `expect_write_single()` |
+| `read_single()` | `respond_read_single()` |
 
 #### Channel-level APIs
 

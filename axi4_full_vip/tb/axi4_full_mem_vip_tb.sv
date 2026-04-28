@@ -132,7 +132,7 @@ module axi4_full_mem_vip_tb;
     logic [DATA_WIDTH-1:0] read_data;
     logic [1:0]            resp;
     begin
-      master_vip.read(.addr(addr), .data(read_data), .resp(resp), .id(id));
+      master_vip.read_single(.addr(addr), .data(read_data), .resp(resp), .id(id));
       assert(resp == 2'b00) else $error("Read response mismatch addr=%h resp=%0h", addr, resp);
       assert(read_data == expected_data)
         else $error("Read data mismatch addr=%h exp=%h got=%h", addr, expected_data, read_data);
@@ -157,12 +157,11 @@ module axi4_full_mem_vip_tb;
       $display("\n=== AXI4 Full VIP Testbench Started ===");
       $display("\n--- Test 1: Simple Write-Read ---");
 
-      master_vip.write(
+      master_vip.write_single(
         .addr(32'h1000),
         .data(32'hDEADBEEF),
         .strb(4'hF),
         .id(4'd0),
-        .len(8'd0),
         .resp(resp)
       );
       assert(resp == 2'b00) else $error("Write response mismatch resp=%0h", resp);
@@ -174,7 +173,7 @@ module axi4_full_mem_vip_tb;
       logic [1:0] resp;
       $display("\n--- Test 2: Multiple Writes ---");
       for (int i = 0; i < 4; i++) begin
-        master_vip.write(
+        master_vip.write_single(
           .addr(32'h2000 + (i * 4)),
           .data(32'h11223300 + i),
           .strb(4'hF),
@@ -192,7 +191,7 @@ module axi4_full_mem_vip_tb;
       logic [1:0] resp;
       logic [DATA_WIDTH-1:0] expected_data;
       $display("\n--- Test 4: Partial Write (Byte 1-2) ---");
-      master_vip.write(
+      master_vip.write_single(
         .addr(32'h3000),
         .data(32'hFFFF0000),
         .strb(4'hF),
@@ -200,7 +199,7 @@ module axi4_full_mem_vip_tb;
         .resp(resp)
       );
       assert(resp == 2'b00) else $error("Initial write response mismatch resp=%0h", resp);
-      master_vip.write(
+      master_vip.write_single(
         .addr(32'h3000),
         .data(32'h12345678),
         .strb(4'b0110),  // Only bytes 1 and 2
@@ -333,10 +332,10 @@ module axi4_full_mem_vip_tb;
       logic rd_last;
       $display("\n--- Test 8: Multiple Outstanding Reads ---");
 
-      master_vip.write(.addr(32'h6000), .data(32'h11111111), .resp(wr_resp));
-      master_vip.write(.addr(32'h6004), .data(32'h22222222), .resp(wr_resp));
-      master_vip.write(.addr(32'h6008), .data(32'h33333333), .resp(wr_resp));
-      master_vip.write(.addr(32'h600C), .data(32'h44444444), .resp(wr_resp));
+      master_vip.write_single(.addr(32'h6000), .data(32'h11111111), .resp(wr_resp));
+      master_vip.write_single(.addr(32'h6004), .data(32'h22222222), .resp(wr_resp));
+      master_vip.write_single(.addr(32'h6008), .data(32'h33333333), .resp(wr_resp));
+      master_vip.write_single(.addr(32'h600C), .data(32'h44444444), .resp(wr_resp));
 
       fork
 
@@ -373,17 +372,17 @@ module axi4_full_mem_vip_tb;
       $display("\n--- Test 9: Mixed Outstanding Read-Write ---");
 
       // init mem
-      master_vip.write(.addr(32'h6000), .data(32'h11111111), .strb(4'hF), .id(4'd0), .resp(wr_resp[0]));
-      master_vip.write(.addr(32'h6004), .data(32'h22222222), .strb(4'hF), .id(4'd0), .resp(wr_resp[0]));
+      master_vip.write_single(.addr(32'h6000), .data(32'h11111111), .strb(4'hF), .id(4'd0), .resp(wr_resp[0]));
+      master_vip.write_single(.addr(32'h6004), .data(32'h22222222), .strb(4'hF), .id(4'd0), .resp(wr_resp[0]));
 
       // start test
       fork
-        master_vip.write(.addr(32'h7000), .data(32'hAABBCCDD), .strb(4'hF), .id(4'd0), .resp(wr_resp[0]));
-        master_vip.read(.addr(32'h6000), .data(rd_data[0]), .resp(rd_resp[0]), .id(4'd1));
+        master_vip.write_single(.addr(32'h7000), .data(32'hAABBCCDD), .strb(4'hF), .id(4'd0), .resp(wr_resp[0]));
+        master_vip.read_single(.addr(32'h6000), .data(rd_data[0]), .resp(rd_resp[0]), .id(4'd1));
       join
       fork
-        master_vip.write(.addr(32'h7004), .data(32'h11223344), .strb(4'hF), .id(4'd2), .resp(wr_resp[1]));
-        master_vip.read(.addr(32'h6004), .data(rd_data[1]), .resp(rd_resp[1]), .id(4'd3));
+        master_vip.write_single(.addr(32'h7004), .data(32'h11223344), .strb(4'hF), .id(4'd2), .resp(wr_resp[1]));
+        master_vip.read_single(.addr(32'h6004), .data(rd_data[1]), .resp(rd_resp[1]), .id(4'd3));
       join
 
       for (int i = 0; i < 2; i++) begin

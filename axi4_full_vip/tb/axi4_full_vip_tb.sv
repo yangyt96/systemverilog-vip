@@ -103,7 +103,7 @@ module axi4_full_vip_tb;
       slave_rd_data = new[1];
       slave_rd_data[0] = 32'hDEADBEEF;
       fork
-        master_vip.read(.addr(32'h1000), .data(rd_data[0]), .resp(resp), .id(4'd0));
+        master_vip.read_single(.addr(32'h1000), .data(rd_data[0]), .resp(resp), .id(4'd0));
         slave_vip.respond_read_burst(.data(slave_rd_data), .resp(2'b00));
       join
 
@@ -196,7 +196,7 @@ module axi4_full_vip_tb;
       slave_rd_data = new[1];
       slave_rd_data[0] = '0;
       fork
-        master_vip.read(.addr(32'h3000), .data(rd_data[0]), .resp(resp), .id(4'd0));
+        master_vip.read_single(.addr(32'h3000), .data(rd_data[0]), .resp(resp), .id(4'd0));
         slave_vip.respond_read_burst(.data(slave_rd_data), .resp(2'b10));
       join
 
@@ -257,7 +257,7 @@ module axi4_full_vip_tb;
       slave_rd_data[0] = 32'h12345678;
 
       fork
-        master_vip.read(.addr(32'h5000), .data(rd_data[0]), .resp(resp), .id(4'd2));
+        master_vip.read_single(.addr(32'h5000), .data(rd_data[0]), .resp(resp), .id(4'd2));
         slave_vip.respond_read_burst(.data(slave_rd_data), .resp(2'b00));
       join
 
@@ -293,8 +293,8 @@ module axi4_full_vip_tb;
         fork
           begin
             automatic int idx = i;
-            master_vip.write(.addr(32'h6000 + idx*4), .data(wr_data[0]), .strb(4'hF),
-                             .id(idx[3:0]), .resp(wr_resp));
+            master_vip.write_single(.addr(32'h6000 + idx*4), .data(wr_data[0]), .strb(4'hF),
+                                    .id(idx[3:0]), .resp(wr_resp));
           end
           begin
             automatic int idx = i;
