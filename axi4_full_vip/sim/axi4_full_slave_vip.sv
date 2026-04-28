@@ -153,15 +153,13 @@ class Axi4FullSlaveVIP #(
   // ============ Write Channel Tasks ============
 
   // Wait for and accept a write address (AW) transfer
-  task automatic recv_awchn(output logic [ADDR_WIDTH-1:0] addr, output logic [ID_WIDTH-1:0] id,
-                            output logic [LEN_WIDTH-1:0] len, output logic [SIZE_WIDTH-1:0] size,
-                            output logic [BURST_WIDTH-1:0] burst,
-                            output logic [PROT_WIDTH-1:0] prot,
-                            output logic [CACHE_WIDTH-1:0] cache,
-                            output logic [LOCK_WIDTH-1:0] lock,
-                            output logic [QOS_WIDTH-1:0] qos,
-                            output logic [REGION_WIDTH-1:0] region,
-                            output logic [AWUSER_WIDTH-1:0] user);
+  task automatic recv_awchn(
+      output logic [ADDR_WIDTH-1:0] addr, output logic [ID_WIDTH-1:0] id,
+      output logic [LEN_WIDTH-1:0] len, output logic [SIZE_WIDTH-1:0] size,
+      output logic [BURST_WIDTH-1:0] burst, output logic [PROT_WIDTH-1:0] prot,
+      output logic [CACHE_WIDTH-1:0] cache, output logic [LOCK_WIDTH-1:0] lock,
+      output logic [QOS_WIDTH-1:0] qos, output logic [REGION_WIDTH-1:0] region,
+      output logic [AWUSER_WIDTH-1:0] user);
     int unsigned cycles;
 
     wait_reset_release();
@@ -192,8 +190,9 @@ class Axi4FullSlaveVIP #(
     region = vif.awregion;
     user   = vif.awuser;
 
-    $display("[%0t] %s RX AW addr=%h id=%0d len=%0d size=%0d burst=%0d cache=%h lock=%h qos=%h region=%h",
-             $time, vip_name, addr, id, len, size, burst, cache, lock, qos, region);
+    $display(
+        "[%0t] %s RX AW addr=%h id=%0d len=%0d size=%0d burst=%0d cache=%h lock=%h qos=%h region=%h",
+        $time, vip_name, addr, id, len, size, burst, cache, lock, qos, region);
 
     vif.awready <= 1'b0;
   endtask
@@ -217,7 +216,8 @@ class Axi4FullSlaveVIP #(
     last = vif.wlast;
     user = vif.wuser;
 
-    $display("[%0t] %s RX W data=%h strb=%h last=%b user=%h", $time, vip_name, data, strb, last, user);
+    $display("[%0t] %s RX W data=%h strb=%h last=%b user=%h", $time, vip_name, data, strb, last,
+             user);
 
     vif.wready <= 1'b0;
   endtask
@@ -326,22 +326,21 @@ class Axi4FullSlaveVIP #(
     send_bchn(id, resp);
 
     if (beat_data !== data) begin
-      $warning("%s write_resp_single data mismatch: expected %h, got %h", vip_name, data, beat_data);
+      $warning("%s write_resp_single data mismatch: expected %h, got %h", vip_name, data,
+               beat_data);
     end
   endtask
 
   // ============ Read Channel Tasks ============
 
   // Wait for and accept a read address (AR) transfer
-  task automatic recv_archn(output logic [ADDR_WIDTH-1:0] addr, output logic [ID_WIDTH-1:0] id,
-                            output logic [LEN_WIDTH-1:0] len, output logic [SIZE_WIDTH-1:0] size,
-                            output logic [BURST_WIDTH-1:0] burst,
-                            output logic [PROT_WIDTH-1:0] prot,
-                            output logic [CACHE_WIDTH-1:0] cache,
-                            output logic [LOCK_WIDTH-1:0] lock,
-                            output logic [QOS_WIDTH-1:0] qos,
-                            output logic [REGION_WIDTH-1:0] region,
-                            output logic [ARUSER_WIDTH-1:0] user);
+  task automatic recv_archn(
+      output logic [ADDR_WIDTH-1:0] addr, output logic [ID_WIDTH-1:0] id,
+      output logic [LEN_WIDTH-1:0] len, output logic [SIZE_WIDTH-1:0] size,
+      output logic [BURST_WIDTH-1:0] burst, output logic [PROT_WIDTH-1:0] prot,
+      output logic [CACHE_WIDTH-1:0] cache, output logic [LOCK_WIDTH-1:0] lock,
+      output logic [QOS_WIDTH-1:0] qos, output logic [REGION_WIDTH-1:0] region,
+      output logic [ARUSER_WIDTH-1:0] user);
     int unsigned cycles;
 
     wait_reset_release();
@@ -372,8 +371,9 @@ class Axi4FullSlaveVIP #(
     region = vif.arregion;
     user   = vif.aruser;
 
-    $display("[%0t] %s RX AR addr=%h id=%0d len=%0d size=%0d burst=%0d cache=%h lock=%h qos=%h region=%h",
-             $time, vip_name, addr, id, len, size, burst, cache, lock, qos, region);
+    $display(
+        "[%0t] %s RX AR addr=%h id=%0d len=%0d size=%0d burst=%0d cache=%h lock=%h qos=%h region=%h",
+        $time, vip_name, addr, id, len, size, burst, cache, lock, qos, region);
 
     vif.arready <= 1'b0;
   endtask
@@ -400,7 +400,8 @@ class Axi4FullSlaveVIP #(
       end
     end while (!(vif.rready));
 
-    $display("[%0t] %s TX R data=%h id=%0d resp=%0h last=%b", $time, vip_name, data, id, resp, last);
+    $display("[%0t] %s TX R data=%h id=%0d resp=%0h last=%b", $time, vip_name, data, id, resp,
+             last);
 
     vif.rvalid <= 1'b0;
   endtask
@@ -409,8 +410,7 @@ class Axi4FullSlaveVIP #(
   // High-level Read: recv_archn + send_rchn (all beats, loop)
   // Symmetric with Master's read_req_burst()
   // ─────────────────────────────────────────────
-  task automatic read_resp_burst(ref logic [DATA_WIDTH-1:0] data[],
-                                 input logic [1:0] resp = 2'b00);
+  task automatic read_resp_burst(ref logic [DATA_WIDTH-1:0] data[], input logic [1:0] resp = 2'b00);
     logic [ADDR_WIDTH-1:0] addr;
     logic [ID_WIDTH-1:0] id;
     logic [LEN_WIDTH-1:0] len;
@@ -496,20 +496,18 @@ class Axi4FullSlaveVIP #(
   endtask
 
   // Deprecated: use write_resp_burst()/write_resp_single() instead
-  task automatic expect_write(output logic [ADDR_WIDTH-1:0] addr, ref logic [DATA_WIDTH-1:0] data[],
-                              ref logic [STRB_WIDTH-1:0] strb[], output logic [ID_WIDTH-1:0] id,
-                              output logic [LEN_WIDTH-1:0] len, output logic [SIZE_WIDTH-1:0] size,
-                              output logic [BURST_WIDTH-1:0] burst,
-                              output logic [PROT_WIDTH-1:0] prot,
-                              output logic [CACHE_WIDTH-1:0] cache,
-                              output logic [LOCK_WIDTH-1:0] lock,
-                              output logic [QOS_WIDTH-1:0] qos,
-                              output logic [REGION_WIDTH-1:0] region,
-                              output logic [AWUSER_WIDTH-1:0] awuser);
-    int unsigned                  beat_count;
-    logic        [DATA_WIDTH-1:0] beat_data;
-    logic        [STRB_WIDTH-1:0] beat_strb;
-    bit                           beat_last;
+  task automatic expect_write(
+      output logic [ADDR_WIDTH-1:0] addr, ref logic [DATA_WIDTH-1:0] data[],
+      ref logic [STRB_WIDTH-1:0] strb[], output logic [ID_WIDTH-1:0] id,
+      output logic [LEN_WIDTH-1:0] len, output logic [SIZE_WIDTH-1:0] size,
+      output logic [BURST_WIDTH-1:0] burst, output logic [PROT_WIDTH-1:0] prot,
+      output logic [CACHE_WIDTH-1:0] cache, output logic [LOCK_WIDTH-1:0] lock,
+      output logic [QOS_WIDTH-1:0] qos, output logic [REGION_WIDTH-1:0] region,
+      output logic [AWUSER_WIDTH-1:0] awuser);
+    int unsigned                   beat_count;
+    logic        [ DATA_WIDTH-1:0] beat_data;
+    logic        [ STRB_WIDTH-1:0] beat_strb;
+    bit                            beat_last;
     logic        [WUSER_WIDTH-1:0] wuser;
 
     recv_awchn(addr, id, len, size, burst, prot, cache, lock, qos, region, awuser);

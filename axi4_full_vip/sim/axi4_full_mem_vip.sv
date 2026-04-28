@@ -260,7 +260,7 @@ module axi4_full_mem_vip #(
           rd_active    <= 1'b0;
         end else begin
           automatic logic [ADDR_WIDTH-1:0] next_addr;
-          next_addr     = next_burst_addr(rd_addr, rd_size, rd_burst, rd_beats_total);
+          next_addr = next_burst_addr(rd_addr, rd_size, rd_burst, rd_beats_total);
           rd_addr       <= next_addr;
           rd_beat_count <= rd_beat_count + 1;
           s_axi_rid     <= rd_id;

@@ -280,11 +280,11 @@ class Axi4FullMasterVIP #(
         $fatal(1, "%s timed out waiting for AXI4 read data", vip_name);
       end
     end while (!vif.rvalid);
-    data  = vif.rdata;
-    resp  = vif.rresp;
-    id    = vif.rid;
-    last  = vif.rlast;
-    user  = vif.ruser;
+    data = vif.rdata;
+    resp = vif.rresp;
+    id   = vif.rid;
+    last = vif.rlast;
+    user = vif.ruser;
 
     $display("[%0t] %s RX R id=%0d", $time, vip_name, id);
 
@@ -295,7 +295,7 @@ class Axi4FullMasterVIP #(
   task write_req_single(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
                         input logic [STRB_WIDTH-1:0] strb = '1, input logic [ID_WIDTH-1:0] id = '0,
                         output logic [1:0] resp);
-    logic [ID_WIDTH-1:0]   act_id;
+    logic [ID_WIDTH-1:0] act_id;
     logic [BUSER_WIDTH-1:0] act_user;
     apply_pause();
     send_awchn(addr, 1, id);
@@ -310,8 +310,8 @@ class Axi4FullMasterVIP #(
                        output logic [1:0] resp, input logic [ID_WIDTH-1:0] id = '0);
     // act_id/act_last/act_user are required because recv_rchn uses ref parameters
     // (cannot use empty .id()/.last()/.user() syntax with ref)
-    logic [ID_WIDTH-1:0]   act_id;
-    logic                  act_last;
+    logic [   ID_WIDTH-1:0] act_id;
+    logic                   act_last;
     logic [RUSER_WIDTH-1:0] act_user;
     apply_pause();
     send_archn(addr, 1, id);
@@ -326,7 +326,7 @@ class Axi4FullMasterVIP #(
                        input logic [PROT_WIDTH-1:0] prot = 3'b000, output logic [1:0] resp);
     int unsigned beat_count;
     int unsigned beat_idx;
-    logic [ID_WIDTH-1:0]   act_id;
+    logic [ID_WIDTH-1:0] act_id;
     logic [BUSER_WIDTH-1:0] act_user;
 
     beat_count = data.size();
@@ -352,10 +352,10 @@ class Axi4FullMasterVIP #(
       input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
       input logic [BURST_WIDTH-1:0] burst = 2'b01, input logic [PROT_WIDTH-1:0] prot = 3'b000);
 
-    int unsigned beat_idx;
-    logic                  act_last;
-    logic [ID_WIDTH-1:0]   act_id;
-    logic [RUSER_WIDTH-1:0] act_user;
+    int unsigned                   beat_idx;
+    logic                          act_last;
+    logic        [   ID_WIDTH-1:0] act_id;
+    logic        [RUSER_WIDTH-1:0] act_user;
 
     assert (beat_count > 0)
     else $fatal(1, "%s read_req_burst called with no beats", vip_name);
