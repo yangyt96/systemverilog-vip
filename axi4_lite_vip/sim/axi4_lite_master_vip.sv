@@ -84,9 +84,7 @@ class Axi4LiteMasterVIP #(
   // ─────────────────────────────────────────────
   // Write Address Channel (AW)
   // ─────────────────────────────────────────────
-  task automatic send_awchn(
-      input logic [ADDR_WIDTH-1:0] addr,
-      input logic [           2:0] prot = 3'b000);
+  task automatic send_awchn(input logic [ADDR_WIDTH-1:0] addr, input logic [2:0] prot = 3'b000);
     int unsigned cycles;
 
     apply_pause();
@@ -111,9 +109,8 @@ class Axi4LiteMasterVIP #(
   // ─────────────────────────────────────────────
   // Write Data Channel (W)
   // ─────────────────────────────────────────────
-  task automatic send_wchn(
-      input logic [DATA_WIDTH-1:0] data,
-      input logic [STRB_WIDTH-1:0] strb = '1);
+  task automatic send_wchn(input logic [DATA_WIDTH-1:0] data,
+                           input logic [STRB_WIDTH-1:0] strb = '1);
     int unsigned cycles;
 
     apply_pause();
@@ -175,9 +172,7 @@ class Axi4LiteMasterVIP #(
   // ─────────────────────────────────────────────
   // Read Address Channel (AR)
   // ─────────────────────────────────────────────
-  task automatic send_archn(
-      input logic [ADDR_WIDTH-1:0] addr,
-      input logic [           2:0] prot = 3'b000);
+  task automatic send_archn(input logic [ADDR_WIDTH-1:0] addr, input logic [2:0] prot = 3'b000);
     int unsigned cycles;
 
     apply_pause();

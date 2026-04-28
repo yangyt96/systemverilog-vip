@@ -393,7 +393,8 @@ class Axi4FullSlaveVIP #(
   // High-level Read: recv_archn + send_rchn (all beats)
   // Symmetric with Master's read_burst()
   // ─────────────────────────────────────────────
-  task automatic respond_read_burst(ref logic [DATA_WIDTH-1:0] data[], input logic [1:0] resp = 2'b00);
+  task automatic respond_read_burst(ref logic [DATA_WIDTH-1:0] data[],
+                                    input logic [1:0] resp = 2'b00);
     logic [ADDR_WIDTH-1:0] addr;
     logic [ID_WIDTH-1:0] id;
     logic [LEN_WIDTH-1:0] len;
@@ -423,7 +424,8 @@ class Axi4FullSlaveVIP #(
   // Single-beat Read: recv_archn + send_rchn (1 beat)
   // Symmetric with Master's read()
   // ─────────────────────────────────────────────
-  task automatic respond_read_single(output logic [DATA_WIDTH-1:0] data, input logic [1:0] resp = 2'b00);
+  task automatic respond_read_single(output logic [DATA_WIDTH-1:0] data,
+                                     input logic [1:0] resp = 2'b00);
     logic [ADDR_WIDTH-1:0] addr;
     logic [ID_WIDTH-1:0] id;
     logic [LEN_WIDTH-1:0] len;

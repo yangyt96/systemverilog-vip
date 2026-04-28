@@ -197,7 +197,8 @@ class Axi4FullMasterVIP #(
   endtask
 
   // Write Data Channel - Send write data phase
-  task send_wchn(input logic [DATA_WIDTH-1:0] data, input logic [STRB_WIDTH-1:0] strb, input logic last);
+  task send_wchn(input logic [DATA_WIDTH-1:0] data, input logic [STRB_WIDTH-1:0] strb,
+                 input logic last);
     int unsigned beat_count;
     int unsigned beat_idx;
     int unsigned cycles;
@@ -260,7 +261,7 @@ class Axi4FullMasterVIP #(
 
     // Call the three channel APIs in sequence
     send_awchn(addr, beat_count, id, size, burst, prot);
-    for(beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
+    for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
       send_wchn(data[beat_idx], strb[beat_idx], beat_idx == (beat_count - 1));
     end
     recv_bchn(resp);
@@ -325,8 +326,7 @@ class Axi4FullMasterVIP #(
   endtask
 
   // Read Data Channel - Receive read data phase
-  task recv_rchn(ref logic [DATA_WIDTH-1:0] data, ref logic [1:0] resp,
-                 ref logic [ID_WIDTH-1:0] id,
+  task recv_rchn(ref logic [DATA_WIDTH-1:0] data, ref logic [1:0] resp, ref logic [ID_WIDTH-1:0] id,
                  ref logic last);
     int unsigned beat_count;
     int unsigned beat_idx;
@@ -343,7 +343,7 @@ class Axi4FullMasterVIP #(
     end while (!vif.rvalid);
     data = vif.rdata;
     resp = vif.rresp;
-    id = vif.rid;
+    id   = vif.rid;
     last = vif.rlast;
 
     $display("[%0t] %s RX R beats=%0d id=%0d", $time, vip_name, beat_count, id);
@@ -368,14 +368,14 @@ class Axi4FullMasterVIP #(
 
     // Call the two channel APIs in sequence
     send_archn(addr, beat_count, id, size, burst, prot);
-    for(beat_idx=0; beat_idx < beat_count; beat_idx++) begin
+    for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
       recv_rchn(data[beat_idx], resp[beat_idx], act_id, act_last);
 
-          assert (act_id == id)
-    else $error("%s read ID mismatch exp=%0d got=%0d", vip_name, id, vif.rid);
+      assert (act_id == id)
+      else $error("%s read ID mismatch exp=%0d got=%0d", vip_name, id, vif.rid);
 
-              assert (act_last == (beat_idx == (beat_count - 1)))
-    else $error("%s rlast mismatch beat=%0d beats=%0d", vip_name, beat_idx, beat_count);
+      assert (act_last == (beat_idx == (beat_count - 1)))
+      else $error("%s rlast mismatch beat=%0d beats=%0d", vip_name, beat_idx, beat_count);
     end
 
 
