@@ -148,12 +148,25 @@
 - CI 仅检查 `*/sim/*.sv` 文件（tb 文件需要 `vunit_defines.svh`，Docker 镜像中不可用）
 - [`vunit.yml`](.github/workflows/vunit.yml) 已使用 `python3 run_all.py` 运行回归测试
 
-### 4.4 新增：Verible lint 规则优化（低优先级） ⏳ 待完成
+### 4.4 新增：Verible lint 规则优化（低优先级） ✅ 已完成
 
-**新发现**：[`.rules.verible_lint`](.rules.verible_lint) 中禁用了 20+ 条规则。建议：
-- 审查被禁用的规则是否确实不需要
-- 例如 `-explicit-begin` 被禁用，但统一风格后可以考虑启用
-- `-signal-name-style` 被禁用，可以考虑启用以强制命名规范
+**分析结论**：经过实际测试验证，当前 [`rules.verible_lint`](.rules.verible_lint) 中禁用的规则均不适合启用，保持现状。
+
+**已测试的规则及结果**：
+
+| 规则 | 测试结果 | 结论 |
+|------|---------|------|
+| `explicit-begin` | 16 文件 FAIL，需给所有 if/else/while/foreach 加 begin/end | ❌ 改动太大 |
+| `instance-shadowing` | 多个 VIP 构造函数参数名与类成员冲突，需重命名参数 | ❌ 改动太大 |
+| `numeric-format-string-style` | 16 文件 125 处违规，`%0t`/`%0d`/`%0b` 格式问题，且规则行为不清晰 | ❌ 规则要求不明确 |
+| `port-name-suffix` | 所有 interface 的 `aclk`/`aresetn` 及 mem_vip 的 AXI 端口需加 `_i`/`_o` 后缀 | ❌ 改动太大，AXI 信号是行业标准命名 |
+| `endif-comment` | 无违规（当前代码已有 endif 注释） | ✅ 可启用但没必要 |
+| `banned-declared-name-patterns` | 无实际违规 | ❌ 项目没有特定禁止命名 |
+| `dff-name-style` | mem_vip 中 `state`/`prdata` 等信号需加 `_reg`/`_ff` 后缀 | ❌ VIP 项目不是 RTL |
+| `disable-statement` | 无实际违规 | ❌ VIP 中可能用到 disable |
+| `signal-name-style` | 当前代码命名风格不一致，改动太大 | ❌ 不适合 |
+
+**最终决定**：保持所有禁用规则不变。当前已启用的规则（`always-comb`、`always-ff-non-blocking`、`case-missing-default`、`module-port`、`no-tabs`、`no-trailing-spaces` 等）已足够覆盖代码质量检查。
 
 ---
 
@@ -328,13 +341,9 @@ UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
 - 参数化范围说明
 - 通用配置模式示例代码
 
-### 6.2 增加贡献指南（低优先级） ⏳ 待完成
+### 6.2 增加贡献指南（低优先级） ❌ 已关闭
 
-建议创建 `CONTRIBUTING.md`，包含：
-- 如何添加新 VIP（模板）
-- 代码风格要求（Verible format）
-- 测试要求（至少 2 个测试用例）
-- PR 流程
+经评估，本项目为个人项目，主要使用 AI 辅助开发，不需要外部贡献者。因此不需要创建 `CONTRIBUTING.md`。
 
 ### 6.3 新增：README 中缺少各 VIP 的详细说明（低优先级） ✅ 已完成
 
@@ -398,10 +407,9 @@ UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
 - [x] **H5** — UART TX `send_frame()` 末尾调用 `clear_outputs()`（低）
 - [x] **H6** — I2S TX `send_frame()` 末尾调用 `clear_outputs()`（低）
 
-### 📋 待完成（2 项，按优先级排序）
+### 📋 待完成（0 项，按优先级排序）
 
-- [ ] **4.4** — Verible lint 规则优化（低）
-- [ ] **6.2** — 贡献指南（低）
+所有任务已完成。
 
 ### 🔮 未来改进建议（Phase 7 遗留，未实现）
 
