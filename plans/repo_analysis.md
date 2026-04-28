@@ -69,12 +69,9 @@
 
 [`axi4_full_master_vip.sv`](axi4_full_vip/sim/axi4_full_master_vip.sv) 的参数声明已从单行单参数改为紧凑的双列格式，减少了约 20 行重复代码。
 
-### 3.3 将 AXI4-Stream DUT 移出 tb 目录（低优先级） ⏳ 待完成
+### 3.3 将 AXI4-Stream DUT 移出 tb 目录（低优先级） ❌ 已移除
 
-**新发现**：[`axi4_stream_dut.sv`](axi4_stream_vip/tb/axi4_stream_dut.sv) 位于 `tb/` 目录下，但它是被测试的 DUT（Design Under Test），不是测试代码。建议：
-- 创建 `axi4_stream_vip/dut/` 目录
-- 将 `axi4_stream_dut.sv` 移入
-- 更新 `run.py` 的 include 路径
+**说明**：[`axi4_stream_dut.sv`](axi4_stream_vip/tb/axi4_stream_dut.sv) 已被移除，不再存在于仓库中。`tb/` 目录下仅有 `run.py`、`axi4_stream_vip_tb.sv`、`axi4_stream_vip_tb.do` 三个文件。此项无需处理。
 
 ### 3.4 新增：APB Slave 增加 backpressure 支持（低优先级） ✅ 已完成
 
@@ -388,11 +385,10 @@ UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
 | 6.1 | API 快速参考文档 | 低 |
 | 6.3 | README VIP 详细说明 | 低 |
 
-### 📋 待完成（3 项，按优先级排序）
+### 📋 待完成（2 项，按优先级排序）
 
 | 编号 | 项目 | 优先级 |
 |------|------|--------|
-| 3.3 | AXI4-Stream DUT 移出 tb 目录 | 低 |
 | 4.4 | Verible lint 规则优化 | 低 |
 | 6.2 | 贡献指南 | 低 |
 
@@ -438,7 +434,7 @@ UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
 
 ## 八、总结
 
-经过全面重新审视，这个 repo 的整体质量良好，代码风格统一，测试覆盖合理。已完成 **29 项**改进，剩余 **3 项**待完成（均为低优先级）。`clean.py` 已被移除，其功能由 `make clean` 替代。
+经过全面重新审视，这个 repo 的整体质量良好，代码风格统一，测试覆盖合理。已完成 **29 项**改进，剩余 **2 项**待完成（均为低优先级）。`clean.py` 已被移除，其功能由 `make clean` 替代。
 
 **Phase 7 新增改进（6 项）**：
 1. **功能 C**：AXI4-Lite Master 信号驱动优化（5.15）
