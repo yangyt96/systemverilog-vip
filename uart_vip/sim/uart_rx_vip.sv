@@ -10,6 +10,8 @@ class UartRxVIP #(
   int unsigned parity_mode;
 
   function new(virtual uart_if.receiver vif, string vip_name = "uart_rx_vip");
+    assert (CLKS_PER_BIT >= 4)
+    else $error("[%s] CLKS_PER_BIT=%0d must be >= 4", vip_name, CLKS_PER_BIT);
     this.vif       = vif;
     this.vip_name  = vip_name;
     timeout_cycles = 3000;

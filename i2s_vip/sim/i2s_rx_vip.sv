@@ -7,6 +7,8 @@ class I2SRxVIP #(
   int unsigned timeout_cycles;
 
   function new(virtual i2s_if.receiver vif, string vip_name = "i2s_rx_vip");
+    assert (SAMPLE_WIDTH > 0)
+    else $error("[%s] SAMPLE_WIDTH=%0d must be > 0", vip_name, SAMPLE_WIDTH);
     this.vif       = vif;
     this.vip_name  = vip_name;
     timeout_cycles = 1000;

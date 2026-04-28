@@ -7,6 +7,8 @@ class I2CMasterVIP #(
   int unsigned timeout_cycles;
 
   function new(virtual i2c_if.master vif, string vip_name = "i2c_master_vip");
+    assert (HALF_SCL_CYCLES > 0)
+    else $error("[%s] HALF_SCL_CYCLES=%0d must be > 0", vip_name, HALF_SCL_CYCLES);
     this.vif       = vif;
     this.vip_name  = vip_name;
     timeout_cycles = 3000;

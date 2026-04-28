@@ -13,6 +13,8 @@ class SpiMasterVIP #(
   bit cpha;
 
   function new(virtual spi_if.master vif, string vip_name = "spi_master_vip");
+    assert (DATA_BITS > 0)
+    else $error("[%s] DATA_BITS=%0d must be > 0", vip_name, DATA_BITS);
     this.vif               = vif;
     this.vip_name          = vip_name;
     enable_pause_generator = 1'b0;
