@@ -59,9 +59,9 @@ class ApbSlaveVIP #(
   endtask
 
   task automatic idle();
-    vif.prdata  = '0;
-    vif.pready  = 1'b0;
-    vif.pslverr = 1'b0;
+    vif.prdata  <= '0;
+    vif.pready  <= 1'b0;
+    vif.pslverr <= 1'b0;
   endtask
 
   task automatic wait_access(input bit expect_write);
@@ -93,12 +93,12 @@ class ApbSlaveVIP #(
 
     stall = get_stall_cycles();
     repeat (stall) @(posedge vif.pclk);
-    vif.pslverr = slverr;
-    vif.pready  = 1'b1;
+    vif.pslverr <= slverr;
+    vif.pready  <= 1'b1;
     @(posedge vif.pclk);
     @(negedge vif.pclk);
-    vif.pready  = 1'b0;
-    vif.pslverr = 1'b0;
+    vif.pready  <= 1'b0;
+    vif.pslverr <= 1'b0;
 
     $display("[%0t] %s WRITE addr=%h data=%h strb=%h slverr=%0b stall=%0d", $time, vip_name, addr,
              data, strb, slverr, stall);
@@ -115,14 +115,14 @@ class ApbSlaveVIP #(
 
     stall = get_stall_cycles();
     repeat (stall) @(posedge vif.pclk);
-    vif.prdata  = read_data;
-    vif.pslverr = slverr;
-    vif.pready  = 1'b1;
+    vif.prdata  <= read_data;
+    vif.pslverr <= slverr;
+    vif.pready  <= 1'b1;
     @(posedge vif.pclk);
     @(negedge vif.pclk);
-    vif.pready  = 1'b0;
-    vif.pslverr = 1'b0;
-    vif.prdata  = '0;
+    vif.pready  <= 1'b0;
+    vif.pslverr <= 1'b0;
+    vif.prdata  <= '0;
 
     $display("[%0t] %s READ  addr=%h data=%h slverr=%0b stall=%0d", $time, vip_name, addr,
              read_data, slverr, stall);
