@@ -242,6 +242,7 @@ module axi4_full_vip_tb;
       logic [1:0]            rd_resp[4];
       logic [ID_WIDTH-1:0]   rd_id;
       logic                  rd_last;
+      logic                  rd_ruser;
 
       $display("\n--- Test 6: Multiple Outstanding Transactions ---");
 
@@ -275,7 +276,7 @@ module axi4_full_vip_tb;
         end
         begin
           for (int i = 0; i < 4; i++) begin
-            master_vip.recv_rchn(.data(rd_data[i]), .resp(rd_resp[i]), .id(rd_id), .last(rd_last));
+            master_vip.recv_rchn(.data(rd_data[i]), .resp(rd_resp[i]), .id(rd_id), .last(rd_last), .ruser(rd_ruser));
           end
         end
       join
@@ -345,6 +346,57 @@ module axi4_full_vip_tb;
 
       // Reset backpressure
       slave_vip.configure_backpressure();
+
+      #(INTER_TRANSACTION_PAUSE);
+    end
+
+    `TEST_CASE("WRAP Burst via Slave VIP")
+    begin
+      logic [DATA_WIDTH-1:0] wr_data[];
+      logic [STRB_WIDTH-1:0] wr_strb[];
+      logic [DATA_WIDTH-1:0] rd_data[];
+      logic [DATA_WIDTH-1:0] slave_rd_data[];
+      logic [1:0]            wr_resp;
+      logic [1:0]            rd_resp[];
+
+      $display("\n--- Test 8: WRAP Burst via Slave VIP (4 beats) ---");
+
+      wr_data = new[4];
+      wr_strb = new[4];
+      rd_data = new[4];
+      rd_resp = new[4];
+      for (int i = 0; i < 4; i++) begin
+        wr_data[i] = 32'hB0000000 + (i * 32'h00100100);
+        wr_strb[i] = '1;
+      end
+
+      fork
+        master_vip.write_req_burst(
+          .addr(32'h8008), .data(wr_data), .strb(wr_strb),
+          .id(4'd8), .burst(2'b10), .resp(wr_resp)  // WRAP
+        );
+        slave_vip.write_resp_burst(.data(wr_data), .strb(wr_strb), .resp(2'b00));
+      join
+
+      assert(wr_resp == 2'b00) else $error("WRAP burst write response mismatch resp=%0h", wr_resp);
+
+      // Read back
+      slave_rd_data = new[4];
+      for (int i = 0; i < 4; i++) begin
+        slave_rd_data[i] = wr_data[i];
+      end
+      fork
+        master_vip.read_req_burst(
+          .addr(32'h8008), .beat_count(4),
+          .data(rd_data), .resp(rd_resp), .id(4'd8), .burst(2'b10)  // WRAP
+        );
+        slave_vip.read_resp_burst(.data(slave_rd_data), .resp(2'b00));
+      join
+
+      for (int i = 0; i < 4; i++) begin
+        assert(rd_data[i] == wr_data[i])
+          else $error("WRAP burst data mismatch beat=%0d exp=%h got=%h", i, wr_data[i], rd_data[i]);
+      end
 
       #(INTER_TRANSACTION_PAUSE);
     end

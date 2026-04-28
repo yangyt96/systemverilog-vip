@@ -87,6 +87,38 @@ master.configure_pause_generator(enable, min_cycles, max_cycles);
 master.configure_timeout(cycles);
 ```
 
+**Complete usage example:**
+
+```systemverilog
+// 1. Create interface and VIP instances
+axi4_full_if #(.ADDR_WIDTH(32), .DATA_WIDTH(32), .ID_WIDTH(4)) axi_if (clk, rstn);
+Axi4FullMasterVIP #(.ADDR_WIDTH(32), .DATA_WIDTH(32), .ID_WIDTH(4)) master_vip;
+master_vip = new(axi_if.master, "MASTER_VIP");
+master_vip.clear_outputs();
+
+// 2. Single-beat write-read
+logic [1:0] resp;
+logic [31:0] rd_data;
+master_vip.write_req_single(.addr(32'h1000), .data(32'hDEADBEEF), .strb(4'hF), .id(4'd0), .resp(resp));
+master_vip.read_req_single(.addr(32'h1000), .data(rd_data), .resp(resp), .id(4'd0));
+
+// 3. Burst write-read (4 beats, INCR)
+logic [31:0] wr_data[4] = '{32'hA, 32'hB, 32'hC, 32'hD};
+logic [31:0] rd_data[4];
+logic [1:0]  rd_resp[4];
+master_vip.write_req_burst(.addr(32'h2000), .data(wr_data), .strb('{4'hF,4'hF,4'hF,4'hF}),
+                           .id(4'd5), .burst(2'b01), .resp(resp));
+master_vip.read_req_burst(.addr(32'h2000), .beat_count(4), .data(rd_data), .resp(rd_resp),
+                          .id(4'd5), .burst(2'b01));
+
+// 4. Channel-level: outstanding transactions
+master_vip.send_awchn(.addr(32'h3000), .beat_count(1), .id(4'd0));
+master_vip.send_wchn(.data(32'h1234), .strb(4'hF), .last(1'b1));
+master_vip.recv_bchn(.resp(resp));
+master_vip.send_archn(.addr(32'h3000), .beat_count(1), .id(4'd0));
+master_vip.recv_rchn(.data(rd_data), .resp(resp), .id(rd_id), .last(rd_last), .ruser(rd_ruser));
+```
+
 ### `Axi4FullSlaveVIP`
 
 The class-based slave VIP provides configurable backpressure on all channels.
@@ -133,12 +165,54 @@ slave.read_resp_burst(data[], resp);
 slave.read_resp_single(data, resp);
 ```
 
+**Backpressure architecture:**
+
+The slave VIP uses `apply_stall()` to inject random backpressure on all channels.
+Following the same pattern as the Master's `apply_pause()`, `apply_stall()` is called
+**only in high-level tasks** (`write_resp_*`, `read_resp_*`), NOT inside channel-level
+APIs (`recv_awchn`, `recv_wchn`, `send_bchn`, `recv_archn`, `send_rchn`). This ensures
+backpressure is applied between channel phases rather than within a single handshake,
+matching real-world slave behavior.
+
+```systemverilog
+// Backpressure is applied between channel phases:
+// recv_awchn → [apply_stall] → recv_wchn → [apply_stall] → send_bchn
+```
+
 **Configuration:**
 
 ```systemverilog
 slave.configure_backpressure(enable, min_cycles, max_cycles);
 slave.configure_timeout(cycles);
 slave.clear_outputs();
+```
+
+**Complete usage example:**
+
+```systemverilog
+// 1. Create interface and VIP instances
+axi4_full_if #(.ADDR_WIDTH(32), .DATA_WIDTH(32), .ID_WIDTH(4)) axi_if (clk, rstn);
+Axi4FullSlaveVIP #(.ADDR_WIDTH(32), .DATA_WIDTH(32), .ID_WIDTH(4)) slave_vip;
+slave_vip = new(axi_if.slave, "SLAVE_VIP");
+slave_vip.clear_outputs();
+
+// 2. Single-beat write response
+slave_vip.write_resp_single(.data(32'hDEADBEEF), .strb(4'hF), .resp(2'b00));
+
+// 3. Burst write response (4 beats)
+logic [31:0] wr_data[4] = '{32'hA, 32'hB, 32'hC, 32'hD};
+logic [3:0]  wr_strb[4] = '{4'hF, 4'hF, 4'hF, 4'hF};
+slave_vip.write_resp_burst(.data(wr_data), .strb(wr_strb), .resp(2'b00));
+
+// 4. Single-beat read response
+slave_vip.read_resp_single(.data(32'h12345678), .resp(2'b00));
+
+// 5. Burst read response (4 beats)
+logic [31:0] rd_data[4] = '{32'hA, 32'hB, 32'hC, 32'hD};
+slave_vip.read_resp_burst(.data(rd_data), .resp(2'b00));
+
+// 6. Enable backpressure
+slave_vip.configure_backpressure(.enable(1'b1), .min_cycles(0), .max_cycles(3));
 ```
 
 ### `axi4_full_mem_vip.sv`
@@ -161,6 +235,8 @@ byte-addressed array, returns `OKAY` responses, preserves response IDs, handles
 | **Multiple Outstanding Writes** | 4 outstanding writes before reading back |
 | **Multiple Outstanding Reads** | 4 outstanding reads |
 | **Mixed Outstanding Read-Write** | Interleaved read/write outstanding |
+| **WRAP Burst Write-Read** | 4-beat WRAP burst on 16-byte boundary |
+| **Outstanding Reads with Different IDs** | Two outstanding reads with different IDs, received in order (mem_vip is single-outstanding) |
 
 ### `axi4_full_vip_tb.sv` — Slave VIP tests
 
@@ -173,6 +249,7 @@ byte-addressed array, returns `OKAY` responses, preserves response IDs, handles
 | **Backpressure Read** | Slave stalls AR and R channels |
 | **Multiple Outstanding Transactions** | 4 outstanding writes then reads |
 | **Mixed Backpressure All Channels** | Backpressure on all channels simultaneously |
+| **WRAP Burst via Slave VIP** | 4-beat WRAP burst through slave VIP |
 
 ## Running the Simulation
 

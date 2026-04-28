@@ -259,10 +259,12 @@ module axi4_full_mem_vip #(
           s_axi_rlast  <= 1'b0;
           rd_active    <= 1'b0;
         end else begin
-          rd_addr       <= next_burst_addr(rd_addr, rd_size, rd_burst, rd_beats_total);
+          automatic logic [ADDR_WIDTH-1:0] next_addr;
+          next_addr     = next_burst_addr(rd_addr, rd_size, rd_burst, rd_beats_total);
+          rd_addr       <= next_addr;
           rd_beat_count <= rd_beat_count + 1;
           s_axi_rid     <= rd_id;
-          s_axi_rdata   <= read_word(next_burst_addr(rd_addr, rd_size, rd_burst, rd_beats_total));
+          s_axi_rdata   <= read_word(next_addr);
           s_axi_rresp   <= AXI_RESP_OKAY;
           s_axi_rlast   <= ((rd_beat_count + 1) == (rd_beats_total - 1));
           s_axi_rvalid  <= 1'b1;

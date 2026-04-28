@@ -212,12 +212,13 @@ class Axi4FullSlaveVIP #(
   endtask
 
   // Send write response (B)
-  task automatic send_bchn(input logic [ID_WIDTH-1:0] id, input logic [1:0] resp = 2'b00);
+  task automatic send_bchn(input logic [ID_WIDTH-1:0] id, input logic [1:0] resp = 2'b00,
+                           input logic [BUSER_WIDTH-1:0] buser = '0);
     int unsigned cycles;
 
     vif.bid    <= id;
     vif.bresp  <= resp;
-    vif.buser  <= '0;
+    vif.buser  <= buser;
     vif.bvalid <= 1'b1;
 
     cycles = 0;
@@ -346,14 +347,15 @@ class Axi4FullSlaveVIP #(
 
   // Send read data (single beat) — symmetric with Master's recv_rchn (scalar)
   task automatic send_rchn(input logic [DATA_WIDTH-1:0] data, input logic [ID_WIDTH-1:0] id,
-                           input logic [1:0] resp = 2'b00, input logic last = 1'b1);
+                           input logic [1:0] resp = 2'b00, input logic last = 1'b1,
+                           input logic [RUSER_WIDTH-1:0] ruser = '0);
     int unsigned cycles;
 
     vif.rid    <= id;
     vif.rdata  <= data;
     vif.rresp  <= resp;
     vif.rlast  <= last;
-    vif.ruser  <= '0;
+    vif.ruser  <= ruser;
     vif.rvalid <= 1'b1;
 
     cycles = 0;

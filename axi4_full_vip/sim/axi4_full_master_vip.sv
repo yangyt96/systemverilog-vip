@@ -145,7 +145,9 @@ class Axi4FullMasterVIP #(
   task send_awchn(
       input logic [ADDR_WIDTH-1:0] addr, input int unsigned beat_count = 1,
       input logic [ID_WIDTH-1:0] id = '0, input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
-      input logic [BURST_WIDTH-1:0] burst = 2'b01, input logic [PROT_WIDTH-1:0] prot = 3'b000);
+      input logic [BURST_WIDTH-1:0] burst = 2'b01, input logic [PROT_WIDTH-1:0] prot = 3'b000,
+      input logic [CACHE_WIDTH-1:0] cache = 4'b0000, input logic [LOCK_WIDTH-1:0] lock = 1'b0,
+      input logic [QOS_WIDTH-1:0] qos = 4'b0000, input logic [REGION_WIDTH-1:0] region = 4'b0000);
     int unsigned cycles;
 
     assert (beat_count > 0)
@@ -159,10 +161,10 @@ class Axi4FullMasterVIP #(
       vif.awsize   <= size;
       vif.awburst  <= burst;
       vif.awprot   <= prot;
-      vif.awcache  <= 4'b0000;
-      vif.awlock   <= 1'b0;
-      vif.awqos    <= 4'b0000;
-      vif.awregion <= 4'b0000;
+      vif.awcache  <= cache;
+      vif.awlock   <= lock;
+      vif.awqos    <= qos;
+      vif.awregion <= region;
       vif.awuser   <= '0;
       vif.awvalid  <= 1'b1;
       @(posedge vif.aclk);
@@ -224,7 +226,9 @@ class Axi4FullMasterVIP #(
   task send_archn(
       input logic [ADDR_WIDTH-1:0] addr, input int unsigned beat_count = 1,
       input logic [ID_WIDTH-1:0] id = '0, input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
-      input logic [BURST_WIDTH-1:0] burst = 2'b01, input logic [PROT_WIDTH-1:0] prot = 3'b000);
+      input logic [BURST_WIDTH-1:0] burst = 2'b01, input logic [PROT_WIDTH-1:0] prot = 3'b000,
+      input logic [CACHE_WIDTH-1:0] cache = 4'b0000, input logic [LOCK_WIDTH-1:0] lock = 1'b0,
+      input logic [QOS_WIDTH-1:0] qos = 4'b0000, input logic [REGION_WIDTH-1:0] region = 4'b0000);
     int unsigned cycles;
 
     assert (beat_count > 0)
@@ -238,10 +242,10 @@ class Axi4FullMasterVIP #(
       vif.arsize   <= size;
       vif.arburst  <= burst;
       vif.arprot   <= prot;
-      vif.arcache  <= 4'b0000;
-      vif.arlock   <= 1'b0;
-      vif.arqos    <= 4'b0000;
-      vif.arregion <= 4'b0000;
+      vif.arcache  <= cache;
+      vif.arlock   <= lock;
+      vif.arqos    <= qos;
+      vif.arregion <= region;
       vif.aruser   <= '0;
       vif.arvalid  <= 1'b1;
       @(posedge vif.aclk);
@@ -259,7 +263,7 @@ class Axi4FullMasterVIP #(
 
   // Read Data Channel - Receive read data phase
   task recv_rchn(ref logic [DATA_WIDTH-1:0] data, ref logic [1:0] resp, ref logic [ID_WIDTH-1:0] id,
-                 ref logic last);
+                 ref logic last, ref logic [RUSER_WIDTH-1:0] ruser);
     int unsigned cycles;
 
     vif.rready <= 1;
@@ -275,6 +279,7 @@ class Axi4FullMasterVIP #(
     resp = vif.rresp;
     id   = vif.rid;
     last = vif.rlast;
+    ruser = vif.ruser;
 
     $display("[%0t] %s RX R id=%0d", $time, vip_name, id);
 
@@ -296,14 +301,15 @@ class Axi4FullMasterVIP #(
   // Single-beat read transaction (request side)
   task read_req_single(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
                        output logic [1:0] resp, input logic [ID_WIDTH-1:0] id = '0);
-    // act_id/act_last are required because recv_rchn uses ref parameters
-    // (cannot use empty .id()/.last() syntax with ref)
-    logic [ID_WIDTH-1:0] act_id;
-    logic act_last;
+    // act_id/act_last/act_ruser are required because recv_rchn uses ref parameters
+    // (cannot use empty .id()/.last()/.ruser() syntax with ref)
+    logic [ID_WIDTH-1:0]   act_id;
+    logic                  act_last;
+    logic [RUSER_WIDTH-1:0] act_ruser;
     apply_pause();
     send_archn(addr, 1, id);
     apply_pause();
-    recv_rchn(data, resp, act_id, act_last);
+    recv_rchn(data, resp, act_id, act_last, act_ruser);
   endtask
 
   task write_req_burst(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data[],
@@ -338,8 +344,9 @@ class Axi4FullMasterVIP #(
       input logic [BURST_WIDTH-1:0] burst = 2'b01, input logic [PROT_WIDTH-1:0] prot = 3'b000);
 
     int unsigned beat_idx;
-    logic act_last;
-    logic [ID_WIDTH-1:0] act_id;
+    logic                  act_last;
+    logic [ID_WIDTH-1:0]   act_id;
+    logic [RUSER_WIDTH-1:0] act_ruser;
 
     assert (beat_count > 0)
     else $fatal(1, "%s read_req_burst called with no beats", vip_name);
@@ -351,7 +358,7 @@ class Axi4FullMasterVIP #(
     send_archn(addr, beat_count, id, size, burst, prot);
     for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
       apply_pause();
-      recv_rchn(data[beat_idx], resp[beat_idx], act_id, act_last);
+      recv_rchn(data[beat_idx], resp[beat_idx], act_id, act_last, act_ruser);
 
       assert (act_id == id)
       else $error("%s read ID mismatch exp=%0d got=%0d", vip_name, id, vif.rid);

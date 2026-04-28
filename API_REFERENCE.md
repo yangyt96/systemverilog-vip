@@ -109,11 +109,11 @@ Synthesizable AXI4-Lite slave with byte-addressed storage and `WSTRB` support.
 
 | Method | Description |
 |--------|-------------|
-| `send_awchn(addr, beat_count, id, size, burst, prot)` | Send write address |
-| `send_wchn(data[], strb[])` | Send write data (all beats) |
+| `send_awchn(addr, beat_count, id, size, burst, prot, cache, lock, qos, region)` | Send write address |
+| `send_wchn(data, strb, last)` | Send single write data beat (scalar) |
 | `recv_bchn(resp)` | Receive write response |
-| `send_archn(addr, beat_count, id, size, burst, prot)` | Send read address |
-| `recv_rchn(data[], resp[], id)` | Receive read data (all beats) |
+| `send_archn(addr, beat_count, id, size, burst, prot, cache, lock, qos, region)` | Send read address |
+| `recv_rchn(data, resp, id, last, ruser)` | Receive single read data beat (scalar) |
 
 #### Configuration
 
@@ -132,9 +132,9 @@ API is symmetric with Master VIP (`send_*` ↔ `recv_*`).
 |--------|-------------|
 | `recv_awchn(addr, id, len, size, burst, prot)` | Receive write address |
 | `recv_wchn(data, strb, last)` | Receive single write data beat |
-| `send_bchn(id, resp)` | Send write response |
+| `send_bchn(id, resp, buser)` | Send write response |
 | `recv_archn(addr, id, len, size, burst, prot)` | Receive read address |
-| `send_rchn(data, id, resp, last)` | Send single read data beat (scalar) |
+| `send_rchn(data, id, resp, last, ruser)` | Send single read data beat (scalar) |
 
 #### High-level APIs (symmetric with Master)
 

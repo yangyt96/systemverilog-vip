@@ -331,6 +331,7 @@ module axi4_full_mem_vip_tb;
       logic [1:0] wr_resp[4];
       logic [ID_WIDTH-1:0] rd_id;
       logic rd_last;
+      logic rd_ruser;
       $display("\n--- Test 8: Multiple Outstanding Reads ---");
 
       master_vip.write_req_single(.addr(32'h6000), .data(32'h11111111), .resp(wr_resp[0]));
@@ -353,7 +354,7 @@ module axi4_full_mem_vip_tb;
 
         begin
           for(int i = 0; i < 4; i++) begin
-            master_vip.recv_rchn(.data(rd_data[i]), .resp(rd_resp[i]), .id(rd_id), .last(rd_last));
+            master_vip.recv_rchn(.data(rd_data[i]), .resp(rd_resp[i]), .id(rd_id), .last(rd_last), .ruser(rd_ruser));
           end
         end
 
@@ -400,6 +401,91 @@ module axi4_full_mem_vip_tb;
 
       check_single_read(32'h7000, 32'hAABBCCDD, 4'd0);
       check_single_read(32'h7004, 32'h11223344, 4'd2);
+    end
+
+    `TEST_CASE("WRAP Burst Write-Read")
+    begin
+      logic [DATA_WIDTH-1:0] wr_data [];
+      logic [STRB_WIDTH-1:0] wr_strb [];
+      logic [DATA_WIDTH-1:0] rd_data [];
+      logic [1:0]            rd_resp [];
+      logic [1:0]            resp;
+
+      $display("\n--- Test 10: WRAP Burst Write-Read (4 beats, 16-byte boundary) ---");
+
+      // WRAP burst: 4 beats, size=2 (4 bytes), wrap boundary = 4*4 = 16 bytes
+      // Start at 0x8000, wraps at 0x8010
+      wr_data = new[4];
+      wr_strb = new[4];
+      rd_data = new[4];
+      rd_resp = new[4];
+      for (int i = 0; i < 4; i++) begin
+        wr_data[i] = 32'hA0000000 + (i * 32'h01010101);
+        wr_strb[i] = '1;
+      end
+
+      master_vip.write_req_burst(
+        .addr(32'h8008),  // offset 8 within 16-byte wrap region
+        .data(wr_data),
+        .strb(wr_strb),
+        .id(4'd8),
+        .burst(2'b10),    // WRAP
+        .resp(resp)
+      );
+      assert(resp == 2'b00) else $error("WRAP burst write response mismatch resp=%0h", resp);
+
+      // Read back with WRAP
+      master_vip.read_req_burst(
+        .addr(32'h8008),
+        .beat_count(4),
+        .data(rd_data),
+        .resp(rd_resp),
+        .id(4'd8),
+        .burst(2'b10)     // WRAP
+      );
+
+      for (int i = 0; i < 4; i++) begin
+        assert(rd_resp[i] == 2'b00) else $error("WRAP burst read response mismatch beat=%0d", i);
+        assert(rd_data[i] == wr_data[i])
+          else $error("WRAP burst data mismatch beat=%0d exp=%h got=%h", i, wr_data[i], rd_data[i]);
+      end
+    end
+
+    `TEST_CASE("Outstanding Reads with Different IDs")
+    begin
+      logic [1:0]            resp;
+      logic [DATA_WIDTH-1:0] rd_data[2];
+      logic [1:0]            rd_resp[2];
+      logic [ID_WIDTH-1:0]   rd_id;
+      logic                  rd_last;
+      logic                  rd_ruser;
+
+      $display("\n--- Test 11: Outstanding Reads with Different IDs ---");
+
+      // Write two locations with different IDs
+      master_vip.write_req_single(.addr(32'h9000), .data(32'hAAAABBBB), .strb(4'hF), .id(4'd1), .resp(resp));
+      assert(resp == 2'b00) else $error("Write id=1 response mismatch resp=%0h", resp);
+      master_vip.write_req_single(.addr(32'h9004), .data(32'hCCCCDDDD), .strb(4'hF), .id(4'd2), .resp(resp));
+      assert(resp == 2'b00) else $error("Write id=2 response mismatch resp=%0h", resp);
+
+      // Issue two outstanding reads with different IDs
+      // Note: mem_vip is single-outstanding, so responses come back in order
+      fork
+        begin
+          master_vip.send_archn(.addr(32'h9000), .beat_count(1), .id(4'd1));
+          master_vip.send_archn(.addr(32'h9004), .beat_count(1), .id(4'd2));
+        end
+        begin
+          // mem_vip is single-outstanding, so responses are in-order
+          master_vip.recv_rchn(.data(rd_data[0]), .resp(rd_resp[0]), .id(rd_id), .last(rd_last), .ruser(rd_ruser));
+          assert(rd_id == 4'd1) else $error("Expected id=1 first but got id=%0d", rd_id);
+          master_vip.recv_rchn(.data(rd_data[1]), .resp(rd_resp[1]), .id(rd_id), .last(rd_last), .ruser(rd_ruser));
+          assert(rd_id == 4'd2) else $error("Expected id=2 second but got id=%0d", rd_id);
+        end
+      join
+
+      assert(rd_data[0] == 32'hAAAABBBB) else $error("Outstanding read id=1 data mismatch");
+      assert(rd_data[1] == 32'hCCCCDDDD) else $error("Outstanding read id=2 data mismatch");
     end
   end
 
