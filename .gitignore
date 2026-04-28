@@ -28,4 +28,9 @@ transcript
 
 # OS files
 .DS_Store
+
+# Python egg-info / dist
+*.egg-info/
+dist/
+build/
 Thumbs.db
