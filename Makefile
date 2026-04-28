@@ -51,8 +51,8 @@ endif
 
 VERIBLE_RULES ?= --rules_config_search
 
-# Find all SystemVerilog source files (sim/ and tb/ directories)
-SV_FILES := $(shell find . -name '*.sv' -not -path './vunit_out/*' -not -path './.github/*' | sort)
+# Find all SystemVerilog source files (sim/ directories only, exclude tb/)
+SV_FILES := $(shell find . -name '*.sv' -not -path './vunit_out/*' -not -path './.github/*' -not -path '*/tb/*' | sort)
 
 # VIP names extracted from tb/run.py paths (e.g., apb_vip)
 VIP_NAMES := $(shell find . -name 'run.py' -path '*/tb/run.py' | sort | sed 's|^\./||;s|/tb/run.py||')
