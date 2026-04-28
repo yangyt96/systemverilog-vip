@@ -256,7 +256,8 @@ byte-addressed array, returns `OKAY` responses, preserves response IDs, handles
 From the project root:
 
 ```bash
-python3 axi4_full_vip/tb/run.py
+make test-axi4_full_vip          # Using Makefile (recommended)
+python3 axi4_full_vip/tb/run.py  # Using Python directly
 ```
 
 With Docker:

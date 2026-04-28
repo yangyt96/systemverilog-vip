@@ -58,8 +58,8 @@ Synthesizable APB slave with byte-addressed storage, zero-wait-state response, a
 
 | Method | Description |
 |--------|-------------|
-| `write(addr, data, strb, resp, prot)` | AXI4-Lite write transaction (AW + W + B) |
-| `read(addr, data, resp, prot)` | AXI4-Lite read transaction (AR + R) |
+| `write_req_single(addr, data, strb, resp, prot)` | AXI4-Lite write transaction (AW + W + B) |
+| `read_req_single(addr, data, resp, prot)` | AXI4-Lite read transaction (AR + R) |
 
 #### Channel-level APIs (fine-grained control)
 

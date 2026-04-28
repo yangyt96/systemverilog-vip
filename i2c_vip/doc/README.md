@@ -107,7 +107,8 @@ slave_vip.configure_timeout(cycles);
 From the project root:
 
 ```bash
-python3 i2c_vip/tb/run.py
+make test-i2c_vip          # Using Makefile (recommended)
+python3 i2c_vip/tb/run.py  # Using Python directly
 ```
 
 With the provided Docker image:

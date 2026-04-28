@@ -6,7 +6,7 @@
 > 语言: 简体中文 (zh-CN) — 与用户沟通语言
 > Commit 语言: 英语 — 代码提交信息使用英语
 >
-> 版本: v2.6 — 新增 Phase 5 文档检查，在验证和提交之间增加文档必要性检测步骤
+> 版本: v2.7 — 移除 repo_analysis.md 引用，统一文档引用结构
 
 ---
 
@@ -36,7 +36,6 @@
 1. **读取项目文档** — 新 AI 窗口首先读取以下文档以建立上下文：
    - [`plans/sv_light_vip_workflow.md`](plans/sv_light_vip_workflow.md) — 本工作流文档（了解流程和规范）
    - [`API_REFERENCE.md`](API_REFERENCE.md) — API 参考文档（了解所有 VIP 的 API 规范）
-   - [`plans/repo_analysis.md`](plans/repo_analysis.md) — 仓库分析文档（了解项目结构和设计决策）
    - 目标 VIP 的 [`doc/README.md`](.) — 具体 VIP 的文档
 
 2. **理解需求** — 明确用户想要什么（新 VIP？增强现有 VIP？修复？）
@@ -211,7 +210,7 @@
   | 新增 API / 修改 API 签名 | [`API_REFERENCE.md`](API_REFERENCE.md) + 对应 VIP 的 [`doc/README.md`](.) | `git diff` 查看是否有 function/task 新增或参数变更 |
   | 新增 VIP | [`README.md`](README.md) + [`API_REFERENCE.md`](API_REFERENCE.md) | 检查是否有新目录 `*/sim/*_vip_pkg.sv` |
   | 修改事务流程/协议行为 | 对应 VIP 的 [`doc/README.md`](.) | 检查是否修改了 high-level task 的实现逻辑 |
-  | 架构变更/改进记录 | [`plans/repo_analysis.md`](plans/repo_analysis.md) | 检查是否完成了一项计划中的改进项 |
+  | 架构变更/改进记录 | 无需更新（项目分析已完成） | 所有计划改进项已完成 |
   | 纯代码风格/格式化 | 无需更新 | 仅修改缩进、空格、注释等 |
   | Bug 修复（不影响 API） | 无需更新 | 修复内部逻辑，对外接口不变 |
   | 新增测试用例 | 无需更新 | 测试文件不在文档范围内 |
@@ -221,7 +220,6 @@
   - **更新 [`README.md`](README.md)** — 新增 VIP 说明、功能列表变更、使用示例
   - **更新对应 VIP 的 [`doc/README.md`](.)** — API 变更说明、新增功能描述、使用示例更新
   - **更新 [`API_REFERENCE.md`](API_REFERENCE.md)** — 新增/修改的 API 签名、参数说明
-  - **更新 [`plans/repo_analysis.md`](plans/repo_analysis.md)** — 标记完成项、更新计数
 
 3. **确认文档与代码一致**:
   - 文档中引用的 API 名称、参数、返回值必须与代码完全一致
@@ -401,7 +399,6 @@
 1. **读取本工作流文档** — 了解完整流程、规范、检查清单
 2. **读取项目文档**:
    - [`API_REFERENCE.md`](API_REFERENCE.md) — API 规范
-   - [`plans/repo_analysis.md`](plans/repo_analysis.md) — 架构分析
 3. **读取当前 Phase 的输入** — 每个 Phase 开头有 `输入:` 标记，明确需要什么
 4. **查看 git log** — 了解最近的提交历史：
    ```bash

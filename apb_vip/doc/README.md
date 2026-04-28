@@ -123,7 +123,8 @@ Two separate testbenches are provided to avoid driver conflicts:
 From the project root:
 
 ```bash
-python3 apb_vip/tb/run.py
+make test-apb_vip          # Using Makefile (recommended)
+python3 apb_vip/tb/run.py  # Using Python directly
 ```
 
 With Docker:

@@ -109,7 +109,8 @@ Tests run for all 4 SPI mode combinations (CPOL=0/1 × CPHA=0/1):
 From the project root:
 
 ```bash
-python3 spi_vip/tb/run.py
+make test-spi_vip          # Using Makefile (recommended)
+python3 spi_vip/tb/run.py  # Using Python directly
 ```
 
 With the provided Docker image:

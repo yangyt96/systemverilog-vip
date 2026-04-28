@@ -113,7 +113,5 @@ Lightweight by design: No UVM, no unnecessary abstraction layers.
 
 Readable and educational: Suitable for learning, teaching, and real bring‑up.
 
-Open and extendable: Contributions and extensions are welcome.
-
 ## 📜 License
 This project is open‑source and available under the MIT license.

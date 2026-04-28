@@ -115,7 +115,8 @@ optional extension if needed.
 From the project root:
 
 ```bash
-python3 uart_vip/tb/run.py
+make test-uart_vip          # Using Makefile (recommended)
+python3 uart_vip/tb/run.py  # Using Python directly
 ```
 
 With the provided Docker image:
