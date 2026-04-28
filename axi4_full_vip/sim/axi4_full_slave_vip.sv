@@ -15,6 +15,10 @@
 //   - read_resp_single()  : recv_archn + send_rchn (1 beat)
 //   - read_resp_burst()   : recv_archn + send_rchn (all beats, loop)
 //
+// Backpressure architecture (following Master's pattern):
+//   - apply_stall() is called ONLY in high-level tasks, NOT in channel-level APIs
+//   - This mirrors Master's apply_pause() placement in high-level tasks only
+//
 // Features:
 //   - Backpressure on AW/W/AR channels (stall before ready)
 //   - Backpressure on B/R channels (stall before valid)
@@ -157,8 +161,6 @@ class Axi4FullSlaveVIP #(
 
     wait_reset_release();
 
-    apply_stall();
-
     vif.awready <= 1'b1;
 
     cycles = 0;
@@ -192,8 +194,6 @@ class Axi4FullSlaveVIP #(
 
     wait_reset_release();
 
-    apply_stall();
-
     cycles = 0;
     do begin
       vif.wready <= 1'b1;
@@ -217,8 +217,6 @@ class Axi4FullSlaveVIP #(
   // Send write response (B)
   task automatic send_bchn(input logic [ID_WIDTH-1:0] id, input logic [1:0] resp = 2'b00);
     int unsigned cycles;
-
-    apply_stall();
 
     vif.bid    <= id;
     vif.bresp  <= resp;
@@ -258,6 +256,7 @@ class Axi4FullSlaveVIP #(
     logic [STRB_WIDTH-1:0] beat_strb;
     bit beat_last;
 
+    apply_stall();
     recv_awchn(addr, id, len, size, burst, prot);
     beat_count = int'(len) + 1;
 
@@ -265,6 +264,7 @@ class Axi4FullSlaveVIP #(
     strb = new[beat_count];
 
     for (int i = 0; i < beat_count; i++) begin
+      apply_stall();
       recv_wchn(beat_data, beat_strb, beat_last);
       data[i] = beat_data;
       strb[i] = beat_strb;
@@ -277,6 +277,7 @@ class Axi4FullSlaveVIP #(
       $warning("%s WLAST not asserted at final beat %0d", vip_name, beat_count - 1);
     end
 
+    apply_stall();
     send_bchn(id, resp);
   endtask
 
@@ -297,8 +298,11 @@ class Axi4FullSlaveVIP #(
     logic [STRB_WIDTH-1:0] beat_strb;
     bit beat_last;
 
+    apply_stall();
     recv_awchn(addr, id, len, size, burst, prot);
+    apply_stall();
     recv_wchn(beat_data, beat_strb, beat_last);
+    apply_stall();
     send_bchn(id, resp);
   endtask
 
@@ -312,8 +316,6 @@ class Axi4FullSlaveVIP #(
     int unsigned cycles;
 
     wait_reset_release();
-
-    apply_stall();
 
     vif.arready <= 1'b1;
 
@@ -346,8 +348,6 @@ class Axi4FullSlaveVIP #(
   task automatic send_rchn(input logic [DATA_WIDTH-1:0] data, input logic [ID_WIDTH-1:0] id,
                            input logic [1:0] resp = 2'b00, input logic last = 1'b1);
     int unsigned cycles;
-
-    apply_stall();
 
     vif.rid    <= id;
     vif.rdata  <= data;
@@ -385,6 +385,7 @@ class Axi4FullSlaveVIP #(
     logic [PROT_WIDTH-1:0] prot;
     int unsigned beat_count;
 
+    apply_stall();
     recv_archn(addr, id, len, size, burst, prot);
     beat_count = int'(len) + 1;
 
@@ -399,6 +400,7 @@ class Axi4FullSlaveVIP #(
       );
 
     for (int i = 0; i < beat_count; i++) begin
+      apply_stall();
       send_rchn(data[i], id, resp, (i == (beat_count - 1)));
     end
 
@@ -418,6 +420,7 @@ class Axi4FullSlaveVIP #(
     logic [PROT_WIDTH-1:0] prot;
     int unsigned beat_count;
 
+    apply_stall();
     recv_archn(addr, id, len, size, burst, prot);
     beat_count = int'(len) + 1;
 
@@ -430,6 +433,7 @@ class Axi4FullSlaveVIP #(
           beat_count
       );
 
+    apply_stall();
     send_rchn(data, id, resp, 1'b1);
   endtask
 
