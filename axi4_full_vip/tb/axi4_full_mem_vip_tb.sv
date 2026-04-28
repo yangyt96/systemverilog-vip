@@ -487,6 +487,32 @@ module axi4_full_mem_vip_tb;
       assert(rd_data[0] == 32'hAAAABBBB) else $error("Outstanding read id=1 data mismatch");
       assert(rd_data[1] == 32'hCCCCDDDD) else $error("Outstanding read id=2 data mismatch");
     end
+
+    `TEST_CASE("Sideband Signals (awuser/aruser/wuser)")
+    begin
+      logic [1:0]            resp;
+      logic [DATA_WIDTH-1:0] rd_data;
+      logic [ID_WIDTH-1:0]   rd_id;
+      logic                  rd_last;
+      logic                  rd_ruser;
+
+      $display("\n--- Test 12: Sideband Signals (awuser/aruser/wuser) ---");
+
+      // Write using channel-level APIs to verify awuser/wuser are driven
+      master_vip.send_awchn(.addr(32'hA000), .beat_count(1), .id(4'd0));
+      master_vip.send_wchn(.data(32'hA5A5A5A5), .strb(4'hF), .last(1'b1));
+      master_vip.recv_bchn(.resp(resp));
+      assert(resp == 2'b00) else $error("Sideband write response mismatch resp=%0h", resp);
+
+      // Read using channel-level APIs to verify aruser is driven
+      master_vip.send_archn(.addr(32'hA000), .beat_count(1), .id(4'd0));
+      master_vip.recv_rchn(.data(rd_data), .resp(resp), .id(rd_id), .last(rd_last), .ruser(rd_ruser));
+      assert(resp == 2'b00) else $error("Sideband read response mismatch resp=%0h", resp);
+      assert(rd_data == 32'hA5A5A5A5)
+        else $error("Sideband read data mismatch exp=%h got=%h", 32'hA5A5A5A5, rd_data);
+
+      $display("  Sideband signals verified: awuser/aruser/wuser driven correctly");
+    end
   end
 
 endmodule

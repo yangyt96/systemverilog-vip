@@ -400,6 +400,64 @@ module axi4_full_vip_tb;
 
       #(INTER_TRANSACTION_PAUSE);
     end
+
+    `TEST_CASE("DECERR Response")
+    begin
+      logic [DATA_WIDTH-1:0] rd_data;
+      logic [1:0]            resp;
+
+      $display("\n--- Test 9: DECERR Response (decode error) ---");
+
+      // Write with DECERR
+      fork
+        master_vip.write_req_single(
+          .addr(32'hF000), .data(32'hDEC0DE10), .strb(4'hF),
+          .id(4'd0), .resp(resp)
+        );
+        slave_vip.write_resp_single(.data(32'hDEC0DE10), .strb(4'hF), .resp(2'b11));
+      join
+
+      assert(resp == 2'b11) else $error("Expected DECERR (3) but got resp=%0h", resp);
+
+      // Read with DECERR
+      fork
+        master_vip.read_req_single(.addr(32'hF000), .data(rd_data), .resp(resp), .id(4'd0));
+        slave_vip.read_resp_single(.data('0), .resp(2'b11));
+      join
+
+      assert(resp == 2'b11) else $error("Expected DECERR (3) on read but got resp=%0h", resp);
+
+      #(INTER_TRANSACTION_PAUSE);
+    end
+
+    `TEST_CASE("EXOKAY Response")
+    begin
+      logic [DATA_WIDTH-1:0] rd_data;
+      logic [1:0]            resp;
+
+      $display("\n--- Test 10: EXOKAY Response (exclusive access) ---");
+
+      // Write with EXOKAY
+      fork
+        master_vip.write_req_single(
+          .addr(32'hA000), .data(32'hA5A5_5A5A), .strb(4'hF),
+          .id(4'd0), .resp(resp)
+        );
+        slave_vip.write_resp_single(.data(32'hA5A5_5A5A), .strb(4'hF), .resp(2'b01));
+      join
+
+      assert(resp == 2'b01) else $error("Expected EXOKAY (1) but got resp=%0h", resp);
+
+      // Read with EXOKAY
+      fork
+        master_vip.read_req_single(.addr(32'hA000), .data(rd_data), .resp(resp), .id(4'd0));
+        slave_vip.read_resp_single(.data(32'hA5A5_5A5A), .resp(2'b01));
+      join
+
+      assert(resp == 2'b01) else $error("Expected EXOKAY (1) on read but got resp=%0h", resp);
+
+      #(INTER_TRANSACTION_PAUSE);
+    end
   end
 
 endmodule
