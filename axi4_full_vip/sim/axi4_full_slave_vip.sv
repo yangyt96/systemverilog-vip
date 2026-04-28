@@ -241,7 +241,7 @@ class Axi4FullSlaveVIP #(
       end
     end while (!(vif.bready));
 
-    $display("[%0t] %s TX B id=%0d resp=%0h", $time, vip_name, id, resp);
+    $display("[%0t] %s TX B id=%0d resp=%0h buser=%0h", $time, vip_name, id, resp, buser);
 
     vif.bvalid <= 1'b0;
   endtask
@@ -402,7 +402,7 @@ class Axi4FullSlaveVIP #(
 
     $display("[%0t] %s TX R data=%h id=%0d resp=%0h last=%b", $time, vip_name, data, id, resp, last);
 
-    vif.rvalid <= 0;
+    vif.rvalid <= 1'b0;
   endtask
 
   // ─────────────────────────────────────────────

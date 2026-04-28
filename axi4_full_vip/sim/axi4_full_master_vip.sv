@@ -147,7 +147,8 @@ class Axi4FullMasterVIP #(
       input logic [ID_WIDTH-1:0] id = '0, input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
       input logic [BURST_WIDTH-1:0] burst = 2'b01, input logic [PROT_WIDTH-1:0] prot = 3'b000,
       input logic [CACHE_WIDTH-1:0] cache = 4'b0000, input logic [LOCK_WIDTH-1:0] lock = 1'b0,
-      input logic [QOS_WIDTH-1:0] qos = 4'b0000, input logic [REGION_WIDTH-1:0] region = 4'b0000);
+      input logic [QOS_WIDTH-1:0] qos = 4'b0000, input logic [REGION_WIDTH-1:0] region = 4'b0000,
+      input logic [AWUSER_WIDTH-1:0] awuser = '0);
     int unsigned cycles;
 
     assert (beat_count > 0)
@@ -165,7 +166,7 @@ class Axi4FullMasterVIP #(
       vif.awlock   <= lock;
       vif.awqos    <= qos;
       vif.awregion <= region;
-      vif.awuser   <= '0;
+      vif.awuser   <= awuser;
       vif.awvalid  <= 1'b1;
       @(posedge vif.aclk);
       cycles++;
@@ -174,8 +175,8 @@ class Axi4FullMasterVIP #(
       end
     end while (!(vif.awready));
 
-    $display("[%0t] %s TX AW addr=%h beats=%0d id=%0d burst=%0d", $time, vip_name, addr,
-             beat_count, id, burst);
+    $display("[%0t] %s TX AW addr=%h beats=%0d id=%0d burst=%0d cache=%h lock=%h qos=%h region=%h",
+             $time, vip_name, addr, beat_count, id, burst, cache, lock, qos, region);
 
     vif.awvalid <= 1'b0;
   endtask
@@ -231,7 +232,8 @@ class Axi4FullMasterVIP #(
       input logic [ID_WIDTH-1:0] id = '0, input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
       input logic [BURST_WIDTH-1:0] burst = 2'b01, input logic [PROT_WIDTH-1:0] prot = 3'b000,
       input logic [CACHE_WIDTH-1:0] cache = 4'b0000, input logic [LOCK_WIDTH-1:0] lock = 1'b0,
-      input logic [QOS_WIDTH-1:0] qos = 4'b0000, input logic [REGION_WIDTH-1:0] region = 4'b0000);
+      input logic [QOS_WIDTH-1:0] qos = 4'b0000, input logic [REGION_WIDTH-1:0] region = 4'b0000,
+      input logic [ARUSER_WIDTH-1:0] aruser = '0);
     int unsigned cycles;
 
     assert (beat_count > 0)
@@ -249,7 +251,7 @@ class Axi4FullMasterVIP #(
       vif.arlock   <= lock;
       vif.arqos    <= qos;
       vif.arregion <= region;
-      vif.aruser   <= '0;
+      vif.aruser   <= aruser;
       vif.arvalid  <= 1'b1;
       @(posedge vif.aclk);
       cycles++;
@@ -260,8 +262,8 @@ class Axi4FullMasterVIP #(
 
     vif.arvalid <= 1'b0;
 
-    $display("[%0t] %s TX AR addr=%h beats=%0d id=%0d burst=%0d", $time, vip_name, addr,
-             beat_count, id, burst);
+    $display("[%0t] %s TX AR addr=%h beats=%0d id=%0d burst=%0d cache=%h lock=%h qos=%h region=%h",
+             $time, vip_name, addr, beat_count, id, burst, cache, lock, qos, region);
   endtask
 
   // Read Data Channel - Receive read data phase
