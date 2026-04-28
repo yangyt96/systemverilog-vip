@@ -282,6 +282,41 @@ UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
 - `recv_bchn()`：`bready` 在 `do...while` 前驱动
 - `recv_rchn()`：`rready` 在 `do...while` 前驱动
 
+### 5.16 新增：API 命名规范化（中优先级） ✅ 已完成
+
+**实现**：根据地址/数据流分类统一了所有 VIP 的 API 命名规范：
+
+**Address-based VIP（发送地址）-> `write_req/read_req` / `write_resp/read_resp`**
+
+| VIP | 旧 API | 新 API | 文件 |
+|-----|--------|--------|------|
+| APB Master | `write()` / `read()` | `write_req()` / `read_req()` | [`apb_master_vip.sv`](apb_vip/sim/apb_master_vip.sv:90) |
+| APB Slave | `expect_write()` / `respond_read()` | `write_resp()` / `read_resp()` | [`apb_slave_vip.sv`](apb_vip/sim/apb_slave_vip.sv:89) |
+
+**Data-stream VIP（不发送地址）-> `send_*` / `recv_*`**
+
+| VIP | 旧 API | 新 API | 文件 |
+|-----|--------|--------|------|
+| SPI Master | `transfer()` | `send_recv()` | [`spi_master_vip.sv`](spi_vip/sim/spi_master_vip.sv:85) |
+| SPI Slave | `transfer()` | `send_recv()` | [`spi_slave_vip.sv`](spi_vip/sim/spi_slave_vip.sv:65) |
+| I2C Master | `write_byte/read_byte/write_bytes/read_bytes` | `send_byte/recv_byte/send_bytes/recv_bytes` | [`i2c_master_vip.sv`](i2c_vip/sim/i2c_master_vip.sv:139) |
+| I2C Slave | `expect_write/respond_read/expect_write_bytes/respond_read_bytes` | `recv_byte/send_byte/recv_bytes/send_bytes` | [`i2c_slave_vip.sv`](i2c_vip/sim/i2c_slave_vip.sv:142) |
+| UART TX | `transmit()` | `send_frame()` | [`uart_tx_vip.sv`](uart_vip/sim/uart_tx_vip.sv:71) |
+| UART RX | `receive()` | `recv_frame()` | [`uart_rx_vip.sv`](uart_vip/sim/uart_rx_vip.sv:51) |
+| I2S TX | `transmit()` | `send_frame()` | [`i2s_tx_vip.sv`](i2s_vip/sim/i2s_tx_vip.sv:62) |
+| I2S RX | `receive()` | `recv_frame()` | [`i2s_rx_vip.sv`](i2s_vip/sim/i2s_rx_vip.sv:22) |
+
+**涉及文件**：22 个文件（9 个 VIP 源文件、6 个 testbench、6 个 README、1 个 API_REFERENCE.md）
+
+**验证结果**：
+- `make lint` — 全部通过
+- `make format` — 全部通过
+- `make test-apb_vip` — 14/14 通过
+- `make test-spi_vip` — 12/12 通过
+- `make test-i2c_vip` — 11/11 通过
+- `make test-uart_vip` — 4/4 通过
+- `make test-i2s_vip` — 4/4 通过
+
 ---
 
 ## 六、文档改进
@@ -318,7 +353,7 @@ UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
 
 ## 七、完成状态汇总
 
-### ✅ 已完成（28 项）
+### ✅ 已完成（29 项）
 
 | 编号 | 项目 | 优先级 |
 |------|------|--------|
@@ -349,6 +384,7 @@ UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
 | 5.13 | 其他 VIP (SPI/I2C/UART/I2S) 添加 `clear_outputs()` | 中 |
 | 5.14 | APB Master/Slave 事务方法末尾调用 `idle()` | 低 |
 | 5.15 | AXI4-Lite Master 信号驱动优化 | 中 |
+| 5.16 | API 命名规范化 | 中 |
 | 6.1 | API 快速参考文档 | 低 |
 | 6.3 | README VIP 详细说明 | 低 |
 
@@ -363,52 +399,6 @@ UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
 ### 🔮 未来改进建议（Phase 7 遗留，未实现）
 
 以下改进建议在 Phase 7 中识别但未实现，按功能类别分组：
-
-#### I 组：API 命名规范化（中优先级）
-
-**核心原则**：根据 VIP 是否发送 address，统一 API 命名 convention：
-
-| VIP 类别 | 包含 VIP | 特点 | Master API 命名 | Slave API 命名 |
-|----------|----------|------|-----------------|----------------|
-| **地址类** (address-based) | APB, AXI4-Lite, AXI4-Full | 发送 address | `write_req_*()` / `read_req_*()` | `write_resp_*()` / `read_resp_*()` |
-| **数据流类** (data-stream) | AXI4-Stream, SPI, I2C, UART, I2S | 不发送 address | `send_*()` / `recv_*()` | `send_*()` / `recv_*()` |
-
-**当前 API 命名现状**：
-
-| VIP | Master API | Slave API | 问题 |
-|-----|-----------|-----------|------|
-| **APB** | `write()` / `read()` | `expect_write()` / `respond_read()` | 地址类，但未用 `write_req/read_req` 命名 |
-| **AXI4-Lite** | `write_req_single()` / `read_req_single()` | `write_resp_single()` / `read_resp_single()` | ✅ 已符合地址类 convention |
-| **AXI4-Full** | `write_req_single()` / `read_req_single()` / `write_req_burst()` / `read_req_burst()` | `write_resp_single()` / `read_resp_single()` / `write_resp_burst()` / `read_resp_burst()` | ✅ 已符合地址类 convention |
-| **AXI4-Stream** | `send_single()` / `send_multi()` | `recv_single()` / `recv_multi()` | ✅ 已符合数据流类 convention |
-| **SPI** | `transfer()` | `transfer()` | 数据流类，但未用 `send/recv` 命名 |
-| **I2C** | `write_byte()` / `read_byte()` / `write_bytes()` / `read_bytes()` | `expect_write()` / `respond_read()` / `expect_write_bytes()` / `respond_read_bytes()` | 数据流类，但未用 `send/recv` 命名 |
-| **UART** | `transmit()` | `receive()` | 数据流类，但未用 `send/recv` 命名 |
-| **I2S** | `transmit()` | `receive()` | 数据流类，但未用 `send/recv` 命名 |
-
-**建议的 API 重命名映射**：
-
-| VIP | 当前 API | 建议新 API | 说明 |
-|-----|---------|-----------|------|
-| **APB Master** | `write()` | `write_req()` | 地址类，对齐 AXI4-Lite/Full |
-| **APB Master** | `read()` | `read_req()` | 地址类，对齐 AXI4-Lite/Full |
-| **APB Slave** | `expect_write()` | `write_resp()` | 地址类，对齐 AXI4-Lite/Full |
-| **APB Slave** | `respond_read()` | `read_resp()` | 地址类，对齐 AXI4-Lite/Full |
-| **SPI Master** | `transfer()` | `send_recv()` | 数据流类，全双工 send+recv |
-| **SPI Slave** | `transfer()` | `send_recv()` | 数据流类，全双工 send+recv |
-| **I2C Master** | `write_byte()` / `write_bytes()` | `send_byte()` / `send_bytes()` | 数据流类 |
-| **I2C Master** | `read_byte()` / `read_bytes()` | `recv_byte()` / `recv_bytes()` | 数据流类 |
-| **I2C Slave** | `expect_write()` / `expect_write_bytes()` | `recv_byte()` / `recv_bytes()` | 数据流类 |
-| **I2C Slave** | `respond_read()` / `respond_read_bytes()` | `send_byte()` / `send_bytes()` | 数据流类 |
-| **UART TX** | `transmit()` | `send_frame()` | 数据流类 |
-| **UART RX** | `receive()` | `recv_frame()` | 数据流类 |
-| **I2S TX** | `transmit()` | `send_frame()` | 数据流类 |
-| **I2S RX** | `receive()` | `recv_frame()` | 数据流类 |
-
-**向后兼容策略**：
-- 保留旧 API 作为别名（调用新 API），标记为 `// DEPRECATED: use send_frame() instead`
-- 测试用例逐步迁移到新 API
-- 在下一个大版本中移除旧 API
 
 #### F 组：为其他 VIP 添加 `idle()` 方法（低优先级）
 
@@ -448,20 +438,20 @@ UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
 
 ## 八、总结
 
-经过全面重新审视，这个 repo 的整体质量良好，代码风格统一，测试覆盖合理。已完成 **28 项**改进，剩余 **3 项**待完成（均为低优先级）。`clean.py` 已被移除，其功能由 `make clean` 替代。
+经过全面重新审视，这个 repo 的整体质量良好，代码风格统一，测试覆盖合理。已完成 **29 项**改进，剩余 **3 项**待完成（均为低优先级）。`clean.py` 已被移除，其功能由 `make clean` 替代。
 
-**Phase 7 新增改进（5 项）**：
+**Phase 7 新增改进（6 项）**：
 1. **功能 C**：AXI4-Lite Master 信号驱动优化（5.15）
 2. **功能 A+B**：APB VIP `clear_outputs()` + `apply_pause()` 分离（3.6, 3.7, 5.12）
 3. **功能 E**：其他 VIP 添加 `clear_outputs()`（5.13）
 4. **功能 D1+D2**：APB Master/Slave 事务方法末尾调用 `idle()`（5.14）
 5. **功能 D3**：AXI4-Stream Slave 已有 `clear_outputs()` — 确认
+6. **I 组**：API 命名规范化（5.16）
 
 **未来改进方向**（按优先级排序）：
-1. **I 组**：API 命名规范化（中优先级，14 项）— 根据是否发送 address 统一 `write_req/read_req` vs `send/recv` convention
-2. **G 组**：统一 `apply_pause()` 分离 `wait_reset_release()`（5 项，中优先级）
-3. **F 组**：为 AXI4-Lite/Full/Stream VIP 添加 `idle()` 方法（5 项，低优先级）
-4. **H 组**：事务方法末尾调用 `idle()`（9 项，低优先级）
+1. **G 组**：统一 `apply_pause()` 分离 `wait_reset_release()`（5 项，中优先级）
+2. **F 组**：为 AXI4-Lite/Full/Stream VIP 添加 `idle()` 方法（5 项，低优先级）
+3. **H 组**：事务方法末尾调用 `idle()`（9 项，低优先级）
 
 **新发现的问题**（与上次分析相比新增）：
 1. 参数化范围检查缺失（2.5）
@@ -474,6 +464,6 @@ UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
 8. 其他 VIP 缺少 `clear_outputs()`（5.13）
 9. APB Master/Slave 事务方法末尾手动清零（5.14）
 10. AXI4-Lite Master 信号驱动位置可优化（5.15）
-11. API 命名不统一：地址类 vs 数据流类 VIP 使用混合命名风格（I 组）
+11. API 命名不统一：地址类 vs 数据流类 VIP 使用混合命名风格（I 组）— ✅ 已修复
 
 这些新发现的问题大多是低优先级的，不影响当前功能，但值得在后续迭代中逐步完善。
