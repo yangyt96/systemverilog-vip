@@ -79,22 +79,25 @@ class Axi4StreamMasterVIP #(
   // Drives tvalid + tdata + sidebands, waits for tready handshake
   // Does NOT call wait_reset_release() or apply_pause() - those are reserved for high-level tasks
   // (following AXI4-Full/Lite channel API pattern)
+  // Signals are driven before the handshake loop (not re-driven each cycle),
+  // matching AXI4-Full/Lite's send_bchn/recv_wchn pattern.
   task automatic send_single(logic [DATA_WIDTH-1:0] tdata, logic [KEEP_WIDTH-1:0] tkeep = '1,
                              logic [KEEP_WIDTH-1:0] tstrb = '1, bit tlast = '1,
                              logic [TID_WIDTH-1:0] tid = '0, logic [TDEST_WIDTH-1:0] tdest = '0,
                              logic [TUSER_WIDTH-1:0] tuser = 0);
     int unsigned cycles;
 
+    vif.tdata  <= tdata;
+    vif.tkeep  <= tkeep;
+    vif.tstrb  <= tstrb;
+    vif.tlast  <= tlast;
+    vif.tid    <= tid;
+    vif.tdest  <= tdest;
+    vif.tuser  <= tuser;
+    vif.tvalid <= 1'b1;
+
     cycles = 0;
     do begin
-      vif.tdata  <= tdata;
-      vif.tkeep  <= tkeep;
-      vif.tstrb  <= tstrb;
-      vif.tlast  <= tlast;
-      vif.tid    <= tid;
-      vif.tdest  <= tdest;
-      vif.tuser  <= tuser;
-      vif.tvalid <= 1'b1;
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin

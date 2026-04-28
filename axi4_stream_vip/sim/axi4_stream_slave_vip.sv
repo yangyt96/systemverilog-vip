@@ -71,15 +71,18 @@ class Axi4StreamSlaveVIP #(
   // Drives tready, waits for tvalid handshake, captures all signals
   // Does NOT call wait_reset_release() or apply_stall() - those are reserved for high-level tasks
   // (following AXI4-Full/Lite channel API pattern)
+  // tready is driven before the handshake loop (not re-driven each cycle),
+  // matching AXI4-Full/Lite's recv_*chn pattern.
   task automatic recv_single(
       output logic [DATA_WIDTH-1:0] tdata, output logic [KEEP_WIDTH-1:0] tkeep,
       output logic [KEEP_WIDTH-1:0] tstrb, output bit tlast, output logic [TID_WIDTH-1:0] tid,
       output logic [TDEST_WIDTH-1:0] tdest, output logic [TUSER_WIDTH-1:0] tuser);
     int unsigned cycles;
 
+    vif.tready <= 1'b1;
+
     cycles = 0;
     do begin
-      vif.tready <= 1'b1;
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
