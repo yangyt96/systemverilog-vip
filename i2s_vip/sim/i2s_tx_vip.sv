@@ -108,8 +108,7 @@ class I2STxVIP #(
       end
     end
 
-    vif.ws <= 1'b0;
-    vif.sd <= 1'b0;
+    clear_outputs();
 
     $display("[%0t] %s TX left=%h right=%h", $time, vip_name, left_sample, right_sample);
   endtask

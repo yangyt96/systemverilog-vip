@@ -125,7 +125,7 @@ class SpiSlaveVIP #(
     end
 
     @(posedge vif.cs_n);
-    vif.miso <= 1'b0;
+    clear_outputs();
 
     $display("[%0t] %s TX=%h RX=%h (CPOL=%0b CPHA=%0b)", $time, vip_name, tx_data, rx_data, cpol,
              cpha);

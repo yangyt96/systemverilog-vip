@@ -159,6 +159,7 @@ class I2CSlaveVIP;
     read_raw_byte(data);
     send_ack(address_match);
     wait_stop();
+    clear_outputs();
 
     $display("[%0t] %s WRITE addr=%h data=%h address_match=%0b", $time, vip_name, rx_address, data,
              address_match);
@@ -180,6 +181,7 @@ class I2CSlaveVIP;
     write_raw_byte(data);
     receive_ack(master_ack);
     wait_stop();
+    clear_outputs();
 
     $display("[%0t] %s READ  addr=%h data=%h address_match=%0b master_ack=%0b", $time, vip_name,
              rx_address, data, address_match, master_ack);
@@ -212,6 +214,7 @@ class I2CSlaveVIP;
     end
 
     wait_stop();
+    clear_outputs();
 
     $display("[%0t] %s WRITE_BYTES addr=%h count=%0d address_match=%0b", $time, vip_name,
              rx_address, byte_count, address_match);
@@ -247,6 +250,7 @@ class I2CSlaveVIP;
     end
 
     wait_stop();
+    clear_outputs();
 
     $display("[%0t] %s READ_BYTES addr=%h count=%0d address_match=%0b", $time, vip_name,
              rx_address, byte_count, address_match);

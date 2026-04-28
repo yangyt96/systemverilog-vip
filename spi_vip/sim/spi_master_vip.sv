@@ -125,8 +125,7 @@ class SpiMasterVIP #(
     end
 
     wait_half_sclk();
-    vif.cs_n <= 1'b1;
-    vif.mosi <= 1'b0;
+    clear_outputs();
 
     $display("[%0t] %s TX=%h RX=%h (CPOL=%0b CPHA=%0b)", $time, vip_name, tx_data, rx_data, cpol,
              cpha);

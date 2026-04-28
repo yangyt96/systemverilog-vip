@@ -164,6 +164,7 @@ class I2CMasterVIP #(
     write_raw_byte({address, 1'b0}, address_ack);
     write_raw_byte(data, data_ack);
     stop_condition();
+    clear_outputs();
 
     $display("[%0t] %s WRITE addr=%h data=%h address_ack=%0b data_ack=%0b", $time, vip_name,
              address, data, address_ack, data_ack);
@@ -177,6 +178,7 @@ class I2CMasterVIP #(
     write_raw_byte({address, 1'b1}, address_ack);
     read_raw_byte(data, 1'b0);
     stop_condition();
+    clear_outputs();
 
     $display("[%0t] %s READ  addr=%h data=%h address_ack=%0b", $time, vip_name, address, data,
              address_ack);
@@ -206,6 +208,7 @@ class I2CMasterVIP #(
     end
 
     stop_condition();
+    clear_outputs();
 
     $display("[%0t] %s WRITE_BYTES addr=%h count=%0d address_ack=%0b", $time, vip_name, address,
              data.size(), address_ack);
@@ -230,6 +233,7 @@ class I2CMasterVIP #(
     end
 
     stop_condition();
+    clear_outputs();
 
     $display("[%0t] %s READ_BYTES addr=%h count=%0d address_ack=%0b", $time, vip_name, address,
              data.size(), address_ack);

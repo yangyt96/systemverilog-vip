@@ -114,6 +114,7 @@ class UartTxVIP #(
 
     // Stop bit
     drive_bit(1'b1);
+    clear_outputs();
 
     $display("[%0t] %s TX data=%h parity=%0d", $time, vip_name, data, parity_mode);
   endtask
