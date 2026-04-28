@@ -13,7 +13,7 @@ vu.add_verilog_builtins()
 lib = vu.add_library("lib")
 lib.add_source_files(
     [
-        ROOT / "tb/axi4_lite_vip_tb.sv",
+        ROOT / "tb/axi4_lite_mem_vip_tb.sv",
     ],
     include_dirs=[
         (ROOT / "sim").as_posix(),

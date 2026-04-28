@@ -5,7 +5,7 @@
 `include "axi4_lite_vip_pkg.sv"
 `include "axi4_lite_mem_vip.sv"
 
-module axi4_lite_dut_tb;
+module axi4_lite_mem_vip_tb;
 
   import vunit_pkg::*;
   import axi4_lite_vip_pkg::*;
